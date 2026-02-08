@@ -1,7 +1,7 @@
 ---
 name: SunSwap DEX Trading
 description: Execute token swaps on SunSwap DEX using Smart Router API and TRON blockchain
-version: 2.0.5
+version: 2.0.6
 dependencies:
   - mcp-server-tron
 tags:
@@ -35,7 +35,7 @@ You **MUST** follow these rules for every transaction. **NO EXCEPTIONS**.
 2.  **Raw Amount Units**: `amountIn` **MUST** be a **Raw Integer String** (e.g., `"20000000"` for 20 USDT), **NOT** a decimal (e.g., `20.0`).
 3.  **Exact Fees**: `fees.length` **MUST** strictly equal `path.length`. **NEVER** truncate the fees array.
 4.  **Exact Versions**: `sum(versionLen)` **MUST** strictly equal `path.length`. merge consecutive identical versions in `poolVersion`.
-5.  **Nile ABI**: You **MUST** provide the full ABI for `read_contract` and `write_contract` calls on Nile Testnet. `unknown function` errors are unacceptable.
+5.  **ABI-First (Hard Gate)**: For **every** `read_contract` and `write_contract` call, include `abi` by default. On Nile Testnet this is **mandatory** (never optional). If `network == nile` and `abi` is missing, **STOP** and fix params before sending.
 
 ---
 
@@ -47,6 +47,28 @@ You **MUST** follow these rules for every transaction. **NO EXCEPTIONS**.
 | `REVERT` / `EXPIRED` | **Restart**: Re-quote API -> Generate New Deadline -> Re-sign. **DO NOT** reuse old params. **DO NOT** simplify route; execute from new `data[0]` only, with strict quote parity checks. |
 | `INSUFFICIENT_OUTPUT` | **Adjust**: Increase slippage tolerance (e.g., 0.5% -> 1.0%) or check liquidity depth. |
 | `TRANSFER_FAILED` | **Check**: Verify User Balance and Allowance (`approve`). |
+
+---
+
+## ABI Enforcement (Model-Safe Defaults)
+
+To make behavior consistent across different models, use this strict policy:
+
+1. Build ABI first, then build args, then execute call.
+2. Never emit a Nile tool call without `abi`.
+3. Prefer including `abi` on mainnet too (deterministic behavior across tool/runtime differences).
+4. Preflight rule before each contract call:
+
+```text
+if call.tool in {read_contract, write_contract}:
+  assert abi exists and abi.length > 0
+if network == "nile":
+  assert abi exists (hard requirement)
+if any assert fails:
+  do not execute; rebuild params first
+```
+
+5. If execution returns `unknown function`, treat it as a policy violation and retry immediately with ABI attached.
 
 ---
 
@@ -313,6 +335,7 @@ Check if Router is approved to spend your tokens:
 
 > [!NOTE]
 > **Nile testnet requires ABI**: Always provide the `abi` parameter when calling contracts on Nile testnet.
+> **Model-safe default**: include `abi` for mainnet calls too.
 
 ---
 
@@ -337,6 +360,16 @@ Check if Router is approved to spend your tokens:
     "TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax",
     "100000000"
   ],
+  "abi": [{
+    "inputs": [
+      {"name": "spender", "type": "address"},
+      {"name": "amount", "type": "uint256"}
+    ],
+    "name": "approve",
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }],
   "network": "mainnet"
 }
 ```
@@ -368,6 +401,9 @@ Verify: `"contractRet": "SUCCESS"`
 ## Step 4: Execute Swap
 
 **Purpose**: Execute swap using the optimal path from API.
+
+> [!IMPORTANT]
+> **Nile Network Requirement**: When calling `write_contract` on Nile, you **MUST** include the `abi` parameter. The MCP server does not have pre-loaded ABIs for testnet contracts. Ensure `abi` contains the full function definition.
 
 ### 🚨 CRITICAL: Smart Router Multi-Hop Logic
 
@@ -464,6 +500,28 @@ Scenario: 4 Tokens (A->B->C->D), all same pool version (e.g., V3 or V2).
     [3000, 3000, 3000, 0],
     ["50000000", "171497283", "YOUR_WALLET_ADDRESS", "1739000000"]
   ],
+  "abi": [{
+    "inputs": [
+      {"name": "path", "type": "address[]"},
+      {"name": "poolVersion", "type": "string[]"},
+      {"name": "versionLen", "type": "uint256[]"},
+      {"name": "fees", "type": "uint24[]"},
+      {
+        "name": "data",
+        "type": "tuple",
+        "components": [
+          {"name": "amountIn", "type": "uint256"},
+          {"name": "amountOutMin", "type": "uint256"},
+          {"name": "to", "type": "address"},
+          {"name": "deadline", "type": "uint256"}
+        ]
+      }
+    ],
+    "name": "swapExactInput",
+    "outputs": [{"name": "amountsOut", "type": "uint256[]"}],
+    "stateMutability": "payable",
+    "type": "function"
+  }],
   "network": "mainnet"
 }
 ```
