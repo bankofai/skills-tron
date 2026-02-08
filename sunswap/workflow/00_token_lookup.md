@@ -62,14 +62,21 @@ mcp_mcp_server_tron_read_contract({
 
 ## Common Token Reference
 
+### ⚠️ TRX vs WTRX - CRITICAL
+
+**User says "TRX"** → Use: `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb`
+**User says "WTRX"** → Use: `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a` (nile)
+
+**NEVER substitute one for the other!**
+
 ### Nile Testnet
 
-| Symbol | Address | Decimals |
-|--------|---------|----------|
-| TRX | `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb` | 6 |
-| USDT | `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` | 6 |
-| USDC | `TWMCMCoJPqCGw5RR7eChF2HoY3a9B8eYA3` | 6 |
-| WTRX | `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a` | 6 |
+| Symbol | Address | Decimals | Notes |
+|--------|---------|----------|-------|
+| **TRX** | `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb` | 6 | Native token, use `value` param |
+| **WTRX** | `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a` | 6 | Wrapped TRC20, needs approval |
+| USDT | `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` | 6 | |
+| USDC | `TWMCMCoJPqCGw5RR7eChF2HoY3a9B8eYA3` | 6 | |
 
 ---
 

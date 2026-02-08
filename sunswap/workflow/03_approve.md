@@ -37,3 +37,16 @@ Authorize the SunSwap Smart Router to withdraw tokens from your wallet. This is 
   }
 ]
 ```
+
+---
+
+## ✅ Step 3 Completion Checklist
+
+Before proceeding to Step 4, confirm:
+
+- [ ] Approval transaction sent successfully
+- [ ] Transaction confirmed (wait 5-15 seconds)
+- [ ] Allowance re-checked and verified (≥ amountIn)
+- [ ] Ready to proceed to swap execution
+
+**If all checked ✅, proceed to Step 4**

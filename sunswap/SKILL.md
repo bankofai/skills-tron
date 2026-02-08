@@ -1,7 +1,7 @@
 ---
 name: SunSwap DEX Trading
 description: Execute token swaps on SunSwap DEX for TRON blockchain.
-version: 2.2.0
+version: 2.3.0
 dependencies:
   - mcp-server-tron
 tags:
@@ -14,13 +14,78 @@ tags:
 
 # SunSwap DEX Trading Skill
 
+## 🔴 CRITICAL: TRX vs WTRX - NEVER SUBSTITUTE!
+
+**User says "TRX"** → Use `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb` (native TRX)
+**User says "WTRX"** → Use `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a` (wrapped TRC20)
+
+**NEVER assume user meant WTRX when they said TRX!** See [INTENT_LOCK.md](INTENT_LOCK.md) for details.
+
+---
+
+## 🚀 Quick Reference Card
+
+### Complete Workflow
+
+```bash
+# Step 1: Get Price Quote (REQUIRED - Always)
+curl 'https://tnrouter.endjgfsv.link/swap/router?fromToken=<FROM_ADDRESS>&toToken=<TO_ADDRESS>&amountIn=<RAW_AMOUNT>&typeList=PSM,CURVE,CURVE_COMBINATION,WTRX,SUNSWAP_V1,SUNSWAP_V2,SUNSWAP_V3'
+
+# Step 2: Check Balance & Allowance (REQUIRED - Always)
+# Use mcp_mcp_server_tron_get_balance and read_contract (balanceOf, allowance)
+
+# Step 3: Approve Token (CONDITIONAL - Only if input is TRC20 token)
+# Skip if input is native TRX
+# Skip if allowance >= amountIn
+# Otherwise: mcp_mcp_server_tron_write_contract (approve function)
+
+# Step 4: Convert Parameters (REQUIRED - Always)
+node skills/sunswap/scripts/format_swap_params.js '<quote_data[0]_json>' '<recipient_address>' '<network>' [slippage]
+
+# Step 5: Execute Swap (REQUIRED - Always)
+# Use the JSON output from Step 4 as parameters for:
+mcp_mcp_server_tron_write_contract({...output_from_step_4...})
+```
+
+### When is Approve Needed?
+
+| Input Token | Approve Needed? | Reason |
+|-------------|-----------------|--------|
+| Native TRX | ❌ NO | Sent via `value` parameter |
+| TRC20 (USDT, WTRX, etc.) | ✅ YES | Router needs permission to spend your tokens |
+| Already approved | ❌ NO | If `allowance >= amountIn`, skip approve |
+
+### Quick Token Lookup
+
+```bash
+# Find token address quickly
+node skills/sunswap/scripts/lookup_token.js <SYMBOL> <NETWORK>
+# Example: node skills/sunswap/scripts/lookup_token.js USDT nile
+```
+
+### Gas Fee Estimates
+
+- **Approve**: ~5-10 TRX
+- **Swap**: ~20-50 TRX  
+- **Recommended**: Keep at least 100 TRX for gas
+
+### Common API Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| 400 Bad Request | Wrong parameter names | Use `fromToken`/`toToken`, not `tokenIn`/`tokenOut` |
+| Empty `data` array | No liquidity | Check token addresses or try different pair |
+| `amountIn` mismatch | Wrong decimals | Use raw integer (1 TRX = 1000000) |
+
+---
+
 ## 📋 Quick Start
 
 This skill helps you execute token swaps on SunSwap DEX. Follow the workflow step-by-step.
 
 **Before you start:**
 - Ensure `mcp-server-tron` is configured
-- Have your wallet set up with sufficient TRX for gas
+- Have your wallet set up with sufficient TRX for gas (minimum 100 TRX recommended)
 
 ---
 
@@ -146,6 +211,26 @@ node skills/sunswap/scripts/format_swap_params.js \
 
 - **Token Registry**: [resources/common_tokens.json](resources/common_tokens.json)
 - **Contract Addresses**: [resources/sunswap_contracts.json](resources/sunswap_contracts.json)
+- **Complete Examples**: [examples/](examples/) - Real working examples with full output
+- **Token Lookup Tool**: [scripts/lookup_token.js](scripts/lookup_token.js) - Quick token address finder
+
+---
+
+## 📖 Examples
+
+**Two complete examples with full output:**
+
+1. **[TRX → USDJ](examples/complete_swap_example.md)** - Native TRX swap (no approve needed)
+   - Simple 3-step workflow
+   - Direct execution with `value` parameter
+   - Lower gas cost
+
+2. **[USDT → TRX](examples/swap_with_approve.md)** - TRC20 token swap (approve required)
+   - Complete 4-step workflow including approve
+   - Balance and allowance checking
+   - Higher gas cost (includes approve)
+
+**Use these as references when implementing swaps!**
 
 ---
 
@@ -153,9 +238,41 @@ node skills/sunswap/scripts/format_swap_params.js \
 
 1. **User Communication**: Announce every step before and after execution
 2. **No Shortcuts**: Follow all steps in order
-3. **Respect Intent**: Never change user's token choice (TRX vs WTRX)
+3. **🔴 RESPECT USER INTENT - TRX vs WTRX**:
+   - If user says "TRX", use TRX address: `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb`
+   - If user says "WTRX", use WTRX address: `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a`
+   - **NEVER** substitute one for the other
+   - **NEVER** assume user meant WTRX when they said TRX
+   - When in doubt, ask the user to clarify
 4. **Use Helper Script**: Always use `format_swap_params.js` for Step 4
 5. **Include ABI**: Always include ABI for Nile testnet
+
+---
+
+## ⚠️ TRX vs WTRX - Critical Distinction
+
+**TRX (Native)**:
+- Address: `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb`
+- This is the native TRON token
+- When used as input: Send via `value` parameter (no approval needed)
+- User says: "swap TRX to USDT" → Use TRX address
+
+**WTRX (Wrapped)**:
+- Address: `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a` (mainnet) or `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a` (nile)
+- This is a TRC20 token wrapper
+- When used as input: Requires approval like any other token
+- User says: "swap WTRX to USDT" → Use WTRX address
+
+**Example - User Intent Matters:**
+```
+❌ WRONG:
+User: "swap 1 TRX to USDT"
+Agent: *uses WTRX address in query*
+
+✅ CORRECT:
+User: "swap 1 TRX to USDT"
+Agent: *uses TRX address T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb*
+```
 
 ---
 

@@ -110,6 +110,7 @@
     },
     "notes": {
         "decimals": "Always check token decimals before formatting amounts",
-        "testnet": "Nile testnet has limited token availability and liquidity"
+        "testnet": "Nile testnet has limited token availability and liquidity",
+        "TRX_vs_WTRX": "CRITICAL: TRX is native token, WTRX is wrapped TRC20. NEVER substitute one for the other based on user intent!"
     }
 }

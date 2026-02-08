@@ -176,6 +176,14 @@ if (require.main === module) {
     // Output validation to stderr (for debugging)
     if (result.validation.valid) {
       console.error('✓ Validation passed');
+      console.error(`  pathLength: ${result.validation.pathLength}`);
+      console.error(`  versionLenSum: ${result.validation.versionLenSum}`);
+      console.error(`  feesLength: ${result.validation.feesLength}`);
+      console.error(`  isTRXInput: ${result.validation.isTRXInput}`);
+      console.error(`  slippage: ${result.validation.slippage}`);
+      console.error('');
+      console.error('📋 Ready to use with MCP:');
+      console.error('   Copy the JSON above and pass to mcp_mcp_server_tron_write_contract');
     } else {
       console.error('✗ Validation failed:', JSON.stringify(result.validation, null, 2));
       process.exit(1);

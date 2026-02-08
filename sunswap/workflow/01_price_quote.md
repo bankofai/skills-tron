@@ -90,6 +90,29 @@ Before using the quote, you **MUST** validate:
 
 ---
 
+## 🚨 Common Errors & Solutions
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `400 Bad Request` | Wrong parameter names | Use `fromToken`/`toToken`, NOT `tokenIn`/`tokenOut` |
+| `400 Bad Request` | Missing `typeList` | Add full typeList: `PSM,CURVE,CURVE_COMBINATION,WTRX,SUNSWAP_V1,SUNSWAP_V2,SUNSWAP_V3` |
+| Empty `data` array | No liquidity for pair | Verify token addresses are correct for the network |
+| `amountIn` mismatch | Wrong decimal precision | Use raw integer units (1 TRX = 1000000, not 1.0) |
+| Network timeout | API unavailable | Retry after a few seconds, or check network status |
+
+---
+
+## 🔴 CRITICAL: TRX vs WTRX
+
+**Before making the API call, verify the token address:**
+
+- If user said **"TRX"** → Use `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb`
+- If user said **"WTRX"** → Use `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a` (mainnet) or `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a` (nile)
+
+**NEVER substitute one for the other based on assumptions!**
+
+---
+
 ## Save Quote Data
 
 Extract and save `data[0]` for the next steps:
@@ -98,6 +121,21 @@ Extract and save `data[0]` for the next steps:
 const quoteData = response.data[0];
 // Save: tokens, poolVersions, poolFees, amountIn, amountOut
 ```
+
+---
+
+## ✅ Step 1 Completion Checklist
+
+Before proceeding to Step 2, confirm:
+
+- [ ] API returned `code == 0`
+- [ ] `data[0]` exists and is valid
+- [ ] `data[0].amountIn` matches your intended input
+- [ ] `data[0].tokens` array has at least 2 addresses
+- [ ] `data[0].poolVersions` and `data[0].poolFees` are present
+- [ ] Quote data saved for next step
+
+**If all checked ✅, proceed to Step 2**
 
 ---
 
