@@ -1,7 +1,7 @@
 ---
 name: SunSwap DEX Trading
 description: Execute token swaps on SunSwap DEX using Smart Router API and TRON blockchain
-version: 2.0.1
+version: 2.0.5
 dependencies:
   - mcp-server-tron
 tags:
@@ -20,12 +20,14 @@ tags:
 1.  **Strict Pair Adherence**: If user says "TRX -> USDT", you **MUST** execute a Native TRX to USDT swap.
     - **DO NOT** silently substitute "WTRX" as the input asset in your *explanation* or *final confirmation*, even if the protocol wraps it internally.
     - **User Intent > Protocol Detail**.
+    - **DO NOT rewrite user requirement**: if user asks `TRX -> USDT`, never relabel it as `WTRX -> USDT` in intent, planning, execution summary, or result confirmation.
+    - Wrapped/native conversion in router path is implementation detail only; user-facing pair must remain exactly the user request.
 2.  **No Speculation**: **DO NOT** perform "check balance", "check allowance", or "probe liquidity" unless the user explicitly asks or the operation fails.
     - **One-Path Workflow**: `Quote -> Params -> Execute -> Receipt`.
 
 ---
 
-## 🛠️ Strong Execution Constraints (The 5 Commandments)
+## 🛠️ Strong Execution Constraints (The 7 Commandments)
 
 You **MUST** follow these rules for every transaction. **NO EXCEPTIONS**.
 
@@ -42,9 +44,92 @@ You **MUST** follow these rules for every transaction. **NO EXCEPTIONS**.
 | Error Type | Action |
 | :--- | :--- |
 | `unknown function` | **Auto-Retry**: Add missing ABI (e.g., `multicall`, `unwrapWTRX`) and retry immediately. |
-| `REVERT` / `EXPIRED` | **Restart**: Re-quote API -> Generate New Deadline -> Re-sign. **DO NOT** reuse old params. |
+| `REVERT` / `EXPIRED` | **Restart**: Re-quote API -> Generate New Deadline -> Re-sign. **DO NOT** reuse old params. **DO NOT** simplify route; execute from new `data[0]` only, with strict quote parity checks. |
 | `INSUFFICIENT_OUTPUT` | **Adjust**: Increase slippage tolerance (e.g., 0.5% -> 1.0%) or check liquidity depth. |
 | `TRANSFER_FAILED` | **Check**: Verify User Balance and Allowance (`approve`). |
+
+---
+
+## Nile ABI Quick Snippets (Copy First, Then Execute)
+
+Use these minimal ABI fragments to avoid missing `abi` on Nile.
+
+### Read: `balanceOf`
+
+```json
+[
+  {
+    "inputs": [{"name": "account", "type": "address"}],
+    "name": "balanceOf",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
+```
+
+### Read: `allowance`
+
+```json
+[
+  {
+    "inputs": [
+      {"name": "owner", "type": "address"},
+      {"name": "spender", "type": "address"}
+    ],
+    "name": "allowance",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
+```
+
+### Write: `approve`
+
+```json
+[
+  {
+    "inputs": [
+      {"name": "spender", "type": "address"},
+      {"name": "amount", "type": "uint256"}
+    ],
+    "name": "approve",
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
+```
+
+### Write: `swapExactInput`
+
+```json
+[
+  {
+    "inputs": [
+      {"name": "path", "type": "address[]"},
+      {"name": "poolVersion", "type": "string[]"},
+      {"name": "versionLen", "type": "uint256[]"},
+      {"name": "fees", "type": "uint24[]"},
+      {
+        "name": "data",
+        "type": "tuple",
+        "components": [
+          {"name": "amountIn", "type": "uint256"},
+          {"name": "amountOutMin", "type": "uint256"},
+          {"name": "to", "type": "address"},
+          {"name": "deadline", "type": "uint256"}
+        ]
+      }
+    ],
+    "name": "swapExactInput",
+    "outputs": [{"name": "amountsOut", "type": "uint256[]"}],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+]
+```
 
 ---
 
@@ -61,6 +146,9 @@ Before executing ANY transaction, you **MUST** output this standardized block:
 - Deadline: [Dynamic Timestamp]
 - Fees: [Length OK]
 - Versions: [Sum OK]
+- Nile ABI: [Present / N/A]
+- Route Source: [API data[0] unchanged]
+- Quote Parity: [path/fees/versions all matched]
 ```
 
 ---
