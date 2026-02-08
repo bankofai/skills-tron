@@ -167,6 +167,12 @@ if (require.main === module) {
     const recipient = args[1];
     const network = args[2];
     const slippage = args[3] ? parseFloat(args[3]) : 0.20;
+    
+    // Validate slippage
+    if (slippage < 0 || slippage >= 1) {
+      console.error(`Error: Invalid slippage ${slippage}. Must be between 0 and 1 (e.g., 0.05 for 5%)`);
+      process.exit(1);
+    }
 
     const result = formatSwapParams(quoteData, recipient, network, slippage);
     
