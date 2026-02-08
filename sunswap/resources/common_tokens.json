@@ -71,6 +71,41 @@
             "name": "TRX",
             "decimals": 6,
             "description": "Native TRX (Burn Address for routing)"
+        },
+        "USDC": {
+            "address": "TWMCMCoJPqCGw5RR7eChF2HoY3a9B8eYA3",
+            "symbol": "USDC",
+            "name": "USD Coin (Nile Testnet)",
+            "decimals": 6,
+            "description": "Test USDC token on Nile testnet"
+        },
+        "SUN": {
+            "address": "TWrZRHY9aKQZcyjpovdH6qeCEyYZrRQDZt",
+            "symbol": "SUN",
+            "name": "SUN (Nile Testnet)",
+            "decimals": 18,
+            "description": "Test SUN token on Nile testnet"
+        },
+        "USDJ": {
+            "address": "TLBaRhANQoJFTqre9Nf1mjuwNWjCJeYqUL",
+            "symbol": "USDJ",
+            "name": "JUST Stablecoin (Nile Testnet)",
+            "decimals": 18,
+            "description": "Test USDJ token on Nile testnet"
+        },
+        "TUSD": {
+            "address": "TRz7J6dD2QWxBoumfYt4b3FaiRG23pXfop",
+            "symbol": "TUSD",
+            "name": "TrueUSD (Nile Testnet)",
+            "decimals": 18,
+            "description": "Test TUSD token on Nile testnet"
+        },
+        "JST": {
+            "address": "TF17BgPaZYbz8oxbjhriubPDsA7ArKoLX3",
+            "symbol": "JST",
+            "name": "JUST (Nile Testnet)",
+            "decimals": 18,
+            "description": "Test JST token on Nile testnet"
         }
     },
     "notes": {

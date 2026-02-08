@@ -1,7 +1,7 @@
 ---
 name: SunSwap DEX Trading
-description: Execute token swaps on SunSwap DEX using Smart Router API and TRON blockchain
-version: 2.0.6
+description: Execute token swaps on SunSwap DEX for TRON blockchain.
+version: 2.2.0
 dependencies:
   - mcp-server-tron
 tags:
@@ -10,628 +10,163 @@ tags:
   - swap
   - tron
   - sunswap
-  - trading
 ---
 
 # SunSwap DEX Trading Skill
 
-## 🚨 INTENT LOCK (MUST FOLLOW)
+## 📋 Quick Start
 
-1.  **Strict Pair Adherence**: If user says "TRX -> USDT", you **MUST** execute a Native TRX to USDT swap.
-    - **DO NOT** silently substitute "WTRX" as the input asset in your *explanation* or *final confirmation*, even if the protocol wraps it internally.
-    - **User Intent > Protocol Detail**.
-    - **DO NOT rewrite user requirement**: if user asks `TRX -> USDT`, never relabel it as `WTRX -> USDT` in intent, planning, execution summary, or result confirmation.
-    - Wrapped/native conversion in router path is implementation detail only; user-facing pair must remain exactly the user request.
-2.  **No Speculation**: **DO NOT** perform "check balance", "check allowance", or "probe liquidity" unless the user explicitly asks or the operation fails.
-    - **One-Path Workflow**: `Quote -> Params -> Execute -> Receipt`.
+This skill helps you execute token swaps on SunSwap DEX. Follow the workflow step-by-step.
+
+**Before you start:**
+- Ensure `mcp-server-tron` is configured
+- Have your wallet set up with sufficient TRX for gas
 
 ---
 
-## 🛠️ Strong Execution Constraints (The 7 Commandments)
+## 🎯 User Communication Protocol
 
-You **MUST** follow these rules for every transaction. **NO EXCEPTIONS**.
+**CRITICAL**: You MUST communicate with the user at each step.
 
-1.  **Dynamic Deadline**: `deadline` **MUST** be `now + 300s` (calculated at runtime). **NEVER** hardcode or reuse old timestamps.
-2.  **Raw Amount Units**: `amountIn` **MUST** be a **Raw Integer String** (e.g., `"20000000"` for 20 USDT), **NOT** a decimal (e.g., `20.0`).
-3.  **Exact Fees**: `fees.length` **MUST** strictly equal `path.length`. **NEVER** truncate the fees array.
-4.  **Exact Versions**: `sum(versionLen)` **MUST** strictly equal `path.length`. merge consecutive identical versions in `poolVersion`.
-5.  **ABI-First (Hard Gate)**: For **every** `read_contract` and `write_contract` call, include `abi` by default. On Nile Testnet this is **mandatory** (never optional). If `network == nile` and `abi` is missing, **STOP** and fix params before sending.
-
----
-
-## ⚡️ Fail-Retry Protocol
-
-| Error Type | Action |
-| :--- | :--- |
-| `unknown function` | **Auto-Retry**: Add missing ABI (e.g., `multicall`, `unwrapWTRX`) and retry immediately. |
-| `REVERT` / `EXPIRED` | **Restart**: Re-quote API -> Generate New Deadline -> Re-sign. **DO NOT** reuse old params. **DO NOT** simplify route; execute from new `data[0]` only, with strict quote parity checks. |
-| `INSUFFICIENT_OUTPUT` | **Adjust**: Increase slippage tolerance (e.g., 0.5% -> 1.0%) or check liquidity depth. |
-| `TRANSFER_FAILED` | **Check**: Verify User Balance and Allowance (`approve`). |
-
----
-
-## ABI Enforcement (Model-Safe Defaults)
-
-To make behavior consistent across different models, use this strict policy:
-
-1. Build ABI first, then build args, then execute call.
-2. Never emit a Nile tool call without `abi`.
-3. Prefer including `abi` on mainnet too (deterministic behavior across tool/runtime differences).
-4. Preflight rule before each contract call:
-
-```text
-if call.tool in {read_contract, write_contract}:
-  assert abi exists and abi.length > 0
-if network == "nile":
-  assert abi exists (hard requirement)
-if any assert fails:
-  do not execute; rebuild params first
+### Step Start Template
+```
+🔄 [Step N]: [Action Name]
+📝 What I'm doing: [Brief description]
 ```
 
-5. If execution returns `unknown function`, treat it as a policy violation and retry immediately with ABI attached.
-
----
-
-## Nile ABI Quick Snippets (Copy First, Then Execute)
-
-Use these minimal ABI fragments to avoid missing `abi` on Nile.
-
-### Read: `balanceOf`
-
-```json
-[
-  {
-    "inputs": [{"name": "account", "type": "address"}],
-    "name": "balanceOf",
-    "outputs": [{"name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  }
-]
+### Step Complete Template
+```
+✅ [Step N] Complete
+📊 Result: [Key information]
+➡️ Next: [What happens next]
 ```
 
-### Read: `allowance`
-
-```json
-[
-  {
-    "inputs": [
-      {"name": "owner", "type": "address"},
-      {"name": "spender", "type": "address"}
-    ],
-    "name": "allowance",
-    "outputs": [{"name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  }
-]
+### Error Template
 ```
-
-### Write: `approve`
-
-```json
-[
-  {
-    "inputs": [
-      {"name": "spender", "type": "address"},
-      {"name": "amount", "type": "uint256"}
-    ],
-    "name": "approve",
-    "outputs": [{"name": "", "type": "bool"}],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  }
-]
-```
-
-### Write: `swapExactInput`
-
-```json
-[
-  {
-    "inputs": [
-      {"name": "path", "type": "address[]"},
-      {"name": "poolVersion", "type": "string[]"},
-      {"name": "versionLen", "type": "uint256[]"},
-      {"name": "fees", "type": "uint24[]"},
-      {
-        "name": "data",
-        "type": "tuple",
-        "components": [
-          {"name": "amountIn", "type": "uint256"},
-          {"name": "amountOutMin", "type": "uint256"},
-          {"name": "to", "type": "address"},
-          {"name": "deadline", "type": "uint256"}
-        ]
-      }
-    ],
-    "name": "swapExactInput",
-    "outputs": [{"name": "amountsOut", "type": "uint256[]"}],
-    "stateMutability": "payable",
-    "type": "function"
-  }
-]
+❌ Error in [Step N]
+🔍 Issue: [What went wrong]
+💡 Solution: [How to fix]
 ```
 
 ---
 
-## 🔍 Pre-Execution Response Template
+## 🛠️ Execution Workflow
 
-Before executing ANY transaction, you **MUST** output this standardized block:
+**Follow these steps in order. Each step is in a separate file to keep context focused.**
 
-```text
-**Intent**: [User's Exact Pair, e.g., TRX -> USDT]
-**Action**: [Direct Swap / Multicall Swap]
-**Input**: [Amount] [Symbol] (Raw: [RawAmount])
-**Output**: ~[Amount] [Symbol] (Min: [RawMin])
-**Constraint Check**:
-- Deadline: [Dynamic Timestamp]
-- Fees: [Length OK]
-- Versions: [Sum OK]
-- Nile ABI: [Present / N/A]
-- Route Source: [API data[0] unchanged]
-- Quote Parity: [path/fees/versions all matched]
+### Step 0: Token Address Lookup
+**File**: [workflow/00_token_lookup.md](workflow/00_token_lookup.md)
+
+**When to use**: If you don't have token addresses for the swap pair.
+
+**User Message**:
+```
+🔍 Step 0: Looking up token addresses
+📝 Checking: [TOKEN_SYMBOL] on [NETWORK]
 ```
 
-## 📢 User Communication & Feedback (Mandatory)
+---
 
-1.  **Pre-Action Announcements**:
-    - Before each major step (Quote, Approve, Swap), explicitly tell the user what you are doing.
-    - Example: "🔍 Fetching best price for 100 USDT -> TRX..." or "📝 Drafting transaction..."
+### Step 1: Price Quote
+**File**: [workflow/01_price_quote.md](workflow/01_price_quote.md)
 
-2.  **Post-Execution Reporting**:
-    - **Immediately** output the `txHash` after a successful `write_contract` call.
-    - **Do NOT** query the transaction status immediately (it takes 10-20s to propagate).
-    - **Standard Output**:
-      ```text
-      ✅ Transaction Broadcast!
-      TXID: [txHash]
-      
-      📝 Note: Please wait ~15-30 seconds for the transaction to be confirmed on-chain.
-      You can track it manually on TronScan: https://nile.tronscan.org/#/transaction/[txHash]
-      ```
+**Always required**: Get the best swap route and expected output.
+
+**User Message**:
+```
+💰 Step 1: Getting price quote
+📝 Querying: [AMOUNT] [FROM_TOKEN] → [TO_TOKEN]
+```
 
 ---
 
-## Overview
+### Step 2: Balance & Allowance Check
+**File**: [workflow/02_balance_check.md](workflow/02_balance_check.md)
 
-Execute token swaps on **SunSwap**, the leading DEX on TRON blockchain, using the **Smart Router** for optimal routing across V1/V2/V3/PSM pools.
+**Always required**: Verify you have sufficient balance and token approval.
 
-**4-Step Workflow**:
-1. 💰 **Price Quote** - Query Smart Router API for optimal path
-2. 📊 **Balance Check** - Verify token balance and allowance  
-3. ✅ **Approve** - Authorize Router to spend tokens (if needed)
-4. 🔄 **Execute Swap** - Perform swap using API-provided path
-
----
-
-## Prerequisites
-
-- ✅ **mcp-server-tron** configured in your MCP client
-- ✅ **TRON wallet** with `TRON_PRIVATE_KEY` environment variable
-- ✅ **Sufficient TRX** for gas fees (10-50 TRX recommended)
-- ✅ **Token balance** for the swap
+**User Message**:
+```
+📊 Step 2: Checking balance and allowance
+📝 Verifying: Wallet balance and router approval
+```
 
 ---
 
-## Key Contracts & APIs
+### Step 3: Approve Token (Conditional)
+**File**: [workflow/03_approve.md](workflow/03_approve.md)
 
-### Smart Router Contracts
+**When to use**: Only if input is a token (not TRX) AND allowance is insufficient.
 
-| Network | Contract Address | API Endpoint |
-|---------|-----------------|--------------|
-| **Mainnet** | `TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax` | `https://rot.endjgfsv.link/swap/router` |
-| **Nile Testnet** | `TMEkn7zwGJvJsRoEkiTKfGRGZS2yMdVmu3` | `https://tnrouter.endjgfsv.link/swap/router` |
-
-### Common Tokens
-
-**Mainnet**:
-- USDT: `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` (6 decimals)
-- WTRX: `TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR` (6 decimals)
-- USDD: `TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn` (18 decimals)
-
-**Nile Testnet**:
-- USDT: `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` (6 decimals)
-- WTRX: `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a` (6 decimals)
-
-> [!NOTE]
-> See `resources/common_tokens.json` for complete token list.
+**User Message**:
+```
+✅ Step 3: Approving token
+📝 Approving: [TOKEN] for SunSwap Router
+⏳ Please wait for confirmation...
+```
 
 ---
 
-## Step 1: Price Quote via Smart Router API
+### Step 4: Execute Swap
+**File**: [workflow/04_execute_swap.md](workflow/04_execute_swap.md)
 
-**Purpose**: Get optimal swap path and expected output amount.
+**Always required**: Execute the actual swap transaction.
 
-### API Request
+**User Message**:
+```
+🔄 Step 4: Executing swap
+📝 Swapping: [AMOUNT_IN] [TOKEN_IN] → [EXPECTED_OUT] [TOKEN_OUT]
+⏳ Submitting transaction...
+```
 
-Use `curl` to query the Smart Router API:
+---
 
+## 🔧 Helper Tools
+
+### Parameter Formatter Script
+
+**Location**: `skills/sunswap/scripts/format_swap_params.js`
+
+**Purpose**: Automatically generates MCP-ready parameters from API quote.
+
+**Usage**:
 ```bash
-# Mainnet example: 50 USDT → TRX
-curl 'https://rot.endjgfsv.link/swap/router?fromToken=TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t&toToken=TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR&amountIn=50000000&typeList=PSM,CURVE,CURVE_COMBINATION,WTRX,SUNSWAP_V1,SUNSWAP_V2,SUNSWAP_V3'
-
-# Nile testnet example: 20 USDT → TRX
-curl 'https://tnrouter.endjgfsv.link/swap/router?fromToken=TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf&toToken=TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a&amountIn=20000000&typeList=PSM,CURVE,CURVE_COMBINATION,WTRX,SUNSWAP_V1,SUNSWAP_V2,SUNSWAP_V3'
+node skills/sunswap/scripts/format_swap_params.js \
+  '<quote_json>' \
+  '<recipient_address>' \
+  '<network>' \
+  [slippage]
 ```
 
-### 1. 💰 Price Quote (Smart Router API)
-
-**Endpoint**: `https://[tn]router.endjgfsv.link/swap/router`
-
-**Parameters**:
-- `fromToken`: Input token address
-- `toToken`: Output token address
-- `amountIn`: Input amount in raw integer units (smallest token unit). Example: 50 USDT (6 decimals) -> `50000000`, 10 TRX (6 decimals) -> `10000000`
-- `typeList`: Pool types to search (use all for best results)
-
-### Mandatory Quote Validation
-
-Before continuing to Step 2 or Step 4, you MUST validate the quote response:
-
-1. Check `code == 0` and `data[0]` exists.
-2. Check `data[0].amountIn` matches intended human amount (for example `10.000000`).
-3. If `amountIn` does not match intent, STOP and re-quote with corrected raw `amountIn`.
-4. Never build swap params from a quote that fails this validation.
-
-### API Response
-
-```json
-{
-  "code": 0,
-  "message": "SUCCESS",
-  "data": [
-    {
-      "amountIn": "50.000000",
-      "amountOut": "180.523456",
-      "tokens": ["TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR"],
-      "symbols": ["USDT", "WTRX"],
-      "poolVersions": ["v2"],
-      "poolFees": ["0", "0"],
-      "impact": "-0.007728",
-      "fee": "0.003000"
-    }
-  ]
-}
-```
-
-**Key Fields**:
-- `data[0]`: Best route (API returns top 3, use first one)
-- `amountOut`: Expected output amount
-- `tokens`: Token path for swap
-- `poolVersions`: Pool versions to use
-- `poolFees`: Fee tiers (⚠️ **has padding**, see Step 4)
+**Output**: Complete MCP `write_contract` parameters (JSON).
 
 ---
 
-## Step 2: Balance Check
+## 📚 Resources
 
-### 2.1 Check Token Balance
-
-Use `read_contract` with `balanceOf`:
-
-```json
-{
-  "contractAddress": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-  "functionName": "balanceOf",
-  "args": ["YOUR_WALLET_ADDRESS"],
-  "network": "mainnet"
-}
-```
-
-**Result**: `"150000000"` = 150 USDT (150,000,000 / 10^6)
-
-### 2.2 Check Allowance
-
-Check if Router is approved to spend your tokens:
-
-```json
-{
-  "contractAddress": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-  "functionName": "allowance",
-  "args": [
-    "YOUR_WALLET_ADDRESS",
-    "TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax"
-  ],
-  "abi": [{
-    "inputs": [
-      {"name": "owner", "type": "address"},
-      {"name": "spender", "type": "address"}
-    ],
-    "name": "allowance",
-    "outputs": [{"name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  }],
-  "network": "mainnet"
-}
-```
-
-**Decision**:
-- If `allowance >= amountIn_sun`: Skip to Step 4
-- If `allowance < amountIn_sun`: Proceed to Step 3
-
-> [!NOTE]
-> **Nile testnet requires ABI**: Always provide the `abi` parameter when calling contracts on Nile testnet.
-> **Model-safe default**: include `abi` for mainnet calls too.
+- **Token Registry**: [resources/common_tokens.json](resources/common_tokens.json)
+- **Contract Addresses**: [resources/sunswap_contracts.json](resources/sunswap_contracts.json)
 
 ---
 
-## Step 3: Approve (If Needed)
+## 🚨 Critical Rules
 
-**When to approve**:
-- ✅ Token → TRX (e.g., USDT → TRX)
-- ✅ Token → Token (e.g., USDT → USDD)
-- ❌ TRX → Token (no approval needed, send TRX via transaction `value`)
-
-> [!NOTE]
-> TRX is native gas token. Router paths may internally include wrapped/native representations.
-> Keep user intent as TRX if user asked for TRX, and pass TRX amount via `value` when swapping from TRX.
-
-### Approve Example
-
-```json
-{
-  "contractAddress": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-  "functionName": "approve",
-  "args": [
-    "TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax",
-    "100000000"
-  ],
-  "abi": [{
-    "inputs": [
-      {"name": "spender", "type": "address"},
-      {"name": "amount", "type": "uint256"}
-    ],
-    "name": "approve",
-    "outputs": [{"name": "", "type": "bool"}],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  }],
-  "network": "mainnet"
-}
-```
-
-**Parameters**:
-- `args[0]`: Spender (Smart Router address)
-- `args[1]`: Amount to approve (100 USDT = 100,000,000 with 6 decimals)
-
-**Best Practice**: Approve 2x the swap amount for future use.
-
-### Verify Approval
-
-Wait 3-6 seconds, then check transaction:
-
-```json
-{
-  "txHash": "0xabc123...",
-  "network": "mainnet"
-}
-```
-
-Verify: `"contractRet": "SUCCESS"`
-
-> [!WARNING]
-> **Security**: Only approve what you need. Avoid unlimited approvals unless you fully trust the contract.
+1. **User Communication**: Announce every step before and after execution
+2. **No Shortcuts**: Follow all steps in order
+3. **Respect Intent**: Never change user's token choice (TRX vs WTRX)
+4. **Use Helper Script**: Always use `format_swap_params.js` for Step 4
+5. **Include ABI**: Always include ABI for Nile testnet
 
 ---
 
-## Step 4: Execute Swap
+## 📖 Detailed Workflow Files
 
-**Purpose**: Execute swap using the optimal path from API.
+Each workflow step is in a separate file to keep context focused:
 
-> [!IMPORTANT]
-> **Nile Network Requirement**: When calling `write_contract` on Nile, you **MUST** include the `abi` parameter. The MCP server does not have pre-loaded ABIs for testnet contracts. Ensure `abi` contains the full function definition.
+- `workflow/00_token_lookup.md` - Find token addresses
+- `workflow/01_price_quote.md` - Get swap quote from API
+- `workflow/02_balance_check.md` - Verify balance and allowance
+- `workflow/03_approve.md` - Approve token spending
+- `workflow/04_execute_swap.md` - Execute the swap
 
-### 🚨 CRITICAL: Smart Router Multi-Hop Logic
-
-**Rule: `path.length == sum(versionLen) == fees.length`**
-
-1.  **poolVersion**: Merge consecutive identical versions (V1, V2, V3, etc.).
-    *   API: `["v2", "v2", "v3", "v3"]` -> Contract: `["v2", "v3"]`
-
-2.  **versionLen**: Represents the **Token Count** (nodes) for that version block.
-    *   **Logic**: Number of tokens **added** by each version segment (first segment includes starting tokens, subsequent segments add 1 new token each due to shared boundaries)
-    *   Example: A -> B -> C -> D (3 hops, 4 tokens).
-        *   If all V2: `versionLen` = `[4]` (Single merged block, all 4 tokens)
-        *   If mixed (e.g., v1, v3, old3pool): `versionLen` = `[2, 1, 1]`
-            - First segment (v1): A→B uses 2 tokens [A, B]
-            - Second segment (v3): B→C adds 1 token [C] (B already counted)
-            - Third segment (old3pool): C→D adds 1 token [D] (C already counted)
-        *   **Rule**: Sum of `versionLen` segments must equal `path.length`.
-
-3.  **fees**: Do **NOT** truncate.
-    *   Use the full array from API. Length must strictly equal `path.length`.
-
-```javascript
-// Example: A -> B -> C -> D (3 hops, 4 tokens)
-// Mixed versions: v2, v3, v2
-
-// 1. path (4 addresses)
-path = ["T_A...", "T_B...", "T_C...", "T_D..."]
-
-// 2. poolVersion (Do NOT merge - different versions)
-poolVersion = ["v2", "v3", "v2"]
-
-// 3. versionLen (Cumulative token count per segment)
-// First segment: 2 tokens [A, B]
-// Second segment: +1 token [C] (B already counted)
-// Third segment: +1 token [D] (C already counted)
-versionLen = [2, 1, 1]  // Sum = 4 = path.length ✓
-
-// 4. fees (Full array, length 4)
-fees = [3000, 3000, 3000, 0] // Keep ALL elements
-```
-
-> [!CAUTION]
-> **Do not truncate fees!** The padding (0) is required for the last token node.
-
-### Parameter Mapping (API → Contract)
-
-Given API response:
-```json
-{
-  "tokens": ["T_A", "T_B", "T_C", "T_D"],
-  "poolVersions": ["v3", "v3", "v3"],
-  "poolFees": ["3000", "3000", "3000", "0"]
-}
-```
-
-Map to contract parameters:
-
-```javascript
-// 1. path - Use tokens directly
-path = apiResponse.tokens
-
-// 2. poolVersion - Merge consecutive identical versions
-// ["v3", "v3", "v3"] -> ["v3"]
-poolVersion = mergeConsecutive(apiResponse.poolVersions)
-
-// 3. versionLen - Calculate cumulative token count for each version segment
-// For single merged "v3": all tokens in one block
-versionLen = [path.length]  // e.g., [4]
-
-// For mixed versions (e.g., ["v1", "v3", "old3pool"]):
-// First segment gets 2 tokens, subsequent segments add 1 each
-// versionLen = [2, 1, 1]  // Sum must equal path.length
-
-// 4. fees - Use ALL fees (do NOT truncate)
-fees = apiResponse.poolFees.map(f => parseInt(f))
-
-
-// 5. data - Convert amounts and add slippage
-amountIn_sun = parseFloat(apiResponse.amountIn) * 1_000_000  // 50000000
-amountOut_sun = parseFloat(apiResponse.amountOut) * 1_000_000  // 180523456
-amountOutMin_sun = Math.floor(amountOut_sun * 0.95)  // 171497283 (5% slippage)
-deadline = Math.floor(Date.now() / 1000) + 300  // 5 minutes from now
-
-// IMPORTANT: `data` must be positional array, not object
-data = [
-  amountIn_sun.toString(),
-  amountOutMin_sun.toString(),
-  "YOUR_WALLET_ADDRESS",
-  deadline.toString()
-]
-```
-
-### Swap Example (Mainnet - Multi-Hop)
-
-Scenario: 4 Tokens (A->B->C->D), all same pool version (e.g., V3 or V2).
-
-```json
-{
-  "contractAddress": "TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax",
-  "functionName": "swapExactInput",
-  "args": [
-    ["T_A", "T_B", "T_C", "T_D"],
-    ["v3"],
-    [4],
-    [3000, 3000, 3000, 0],
-    ["50000000", "171497283", "YOUR_WALLET_ADDRESS", "1739000000"]
-  ],
-  "abi": [{
-    "inputs": [
-      {"name": "path", "type": "address[]"},
-      {"name": "poolVersion", "type": "string[]"},
-      {"name": "versionLen", "type": "uint256[]"},
-      {"name": "fees", "type": "uint24[]"},
-      {
-        "name": "data",
-        "type": "tuple",
-        "components": [
-          {"name": "amountIn", "type": "uint256"},
-          {"name": "amountOutMin", "type": "uint256"},
-          {"name": "to", "type": "address"},
-          {"name": "deadline", "type": "uint256"}
-        ]
-      }
-    ],
-    "name": "swapExactInput",
-    "outputs": [{"name": "amountsOut", "type": "uint256[]"}],
-    "stateMutability": "payable",
-    "type": "function"
-  }],
-  "network": "mainnet"
-}
-```
-
-**Analysis**:
-- `poolVersion`: `["v3"]` (Merged from `["v3", "v3", "v3"]`)
-- `versionLen`: `[4]` (All 4 tokens in single merged block)
-- `fees`: `[..., 0]` (Full length 4, no truncation)
-
-### Swap Example (Mixed Versions - Multi-Hop)
-
-Scenario: 4 Tokens (TRX->SUN->USDJ->USDT), 3 different pool versions.
-
-```json
-{
-  "contractAddress": "TMEkn7zwGJvJsRoEkiTKfGRGZS2yMdVmu3",
-  "functionName": "swapExactInput",
-  "args": [
-    ["T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb", "TWrZRHY9aKQZcyjpovdH6qeCEyYZrRQDZt", "TLBaRhANQoJFTqre9Nf1mjuwNWjCJeYqUL", "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"],
-    ["v1", "v3", "old3pool"],
-    [2, 1, 1],
-    [100],
-    ["1000000", "190000000", "YOUR_WALLET_ADDRESS", "1770537563"]
-  ],
-  "abi": [{
-    "inputs": [
-      {"name": "path", "type": "address[]"},
-      {"name": "poolVersion", "type": "string[]"},
-      {"name": "versionLen", "type": "uint256[]"},
-      {"name": "fees", "type": "uint24[]"},
-      {
-        "components": [
-          {"name": "amountIn", "type": "uint256"},
-          {"name": "amountOutMin", "type": "uint256"},
-          {"name": "to", "type": "address"},
-          {"name": "deadline", "type": "uint256"}
-        ],
-        "name": "data",
-        "type": "tuple"
-      }
-    ],
-    "name": "swapExactInput",
-    "outputs": [{"name": "amountsOut", "type": "uint256[]"}],
-    "stateMutability": "payable",
-    "type": "function"
-  }],
-  "network": "nile",
-  "value": "1000000"
-}
-```
-
-**Analysis**:
-- `poolVersion`: `["v1", "v3", "old3pool"]` (3 different versions, no merging)
-- `versionLen`: `[2, 1, 1]` (First segment: 2 tokens, subsequent segments: +1 each)
-  - v1 segment: TRX→SUN (2 tokens)
-  - v3 segment: SUN→USDJ (+1 token, SUN already counted)
-  - old3pool segment: USDJ→USDT (+1 token, USDJ already counted)
-  - Sum: 2+1+1 = 4 = path.length ✓
-- `fees`: `[0, 100, 0, 0]` (Full length 4, auto-converted from [100])
-- `value`: "1000000" (1 TRX sent as native currency)
-
-### Verify Swap
-
-Check transaction status:
-
-```json
-{
-  "txHash": "0xdef456...",
-  "network": "mainnet"
-}
-```
-
-Verify: `"contractRet": "SUCCESS"`
-
----
-
-## Best Practices
-
-1. **Always use Smart Router API** for price quotes (not on-chain `getAmountsOut`)
-2. **Do NOT truncate poolFees** before passing to contract
-3. **Check allowance** before approving to avoid unnecessary transactions
-4. **Start with small amounts** when testing
-5. **Use 5-10% slippage** for testing, 0.5-2% for production
-6. **Provide ABI** when calling Nile testnet contracts
+**Load only the file you need for the current step.**
