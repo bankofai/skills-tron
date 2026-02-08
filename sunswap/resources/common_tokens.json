@@ -14,6 +14,13 @@
             "decimals": 6,
             "description": "Wrapped TRX for DEX trading"
         },
+        "TRX": {
+            "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+            "symbol": "TRX",
+            "name": "TRX",
+            "decimals": 6,
+            "description": "Native TRX (Burn Address for routing)"
+        },
         "USDD": {
             "address": "TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn",
             "symbol": "USDD",
@@ -45,23 +52,29 @@
     },
     "nile": {
         "USDT": {
-            "address": "TBD",
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
             "symbol": "USDT",
-            "name": "Tether USD (Testnet)",
+            "name": "Tether USD (Nile Testnet)",
             "decimals": 6,
-            "description": "Testnet USDT - limited availability"
+            "description": "Test USDT token on Nile testnet"
         },
         "WTRX": {
-            "address": "TBD",
+            "address": "TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a",
             "symbol": "WTRX",
-            "name": "Wrapped TRX (Testnet)",
+            "name": "Wrapped TRX (Nile Testnet)",
             "decimals": 6,
-            "description": "Testnet WTRX"
+            "description": "Wrapped TRX for DEX trading on Nile testnet"
+        },
+        "TRX": {
+            "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+            "symbol": "TRX",
+            "name": "TRX",
+            "decimals": 6,
+            "description": "Native TRX (Burn Address for routing)"
         }
     },
     "notes": {
         "decimals": "Always check token decimals before formatting amounts",
-        "wtrx": "TRX must be wrapped to WTRX for DEX trading",
         "testnet": "Nile testnet has limited token availability and liquidity"
     }
 }
