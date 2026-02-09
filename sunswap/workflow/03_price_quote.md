@@ -1,4 +1,10 @@
-# 1. 💰 Price Quote
+# 3. 💰 Price Quote
+
+...
+
+## Next Step
+
+→ [Step 4: Execute Swap](04_execute_swap.md)
 
 ## API Call Template
 
@@ -36,12 +42,12 @@ curl 'https://tnrouter.endjgfsv.link/swap/router?fromToken=<FROM_ADDRESS>&toToke
 
 ---
 
-## API Endpoint
+## API Endpoints by Network
 
-**GET** `https://[tn]router.endjgfsv.link/swap/router`
-
-- **Mainnet**: `https://rot.endjgfsv.link/swap/router`
-- **Nile**: `https://tnrouter.endjgfsv.link/swap/router`
+| Network | API Endpoint |
+|---------|--------------|
+| **Mainnet** | `https://rot.endjgfsv.link/swap/router` |
+| **Nile** | `https://tnrouter.endjgfsv.link/swap/router` |
 
 ---
 
@@ -95,6 +101,9 @@ Before using the quote, you **MUST** validate:
 2. ✅ **Data**: `data` array is not empty
 3. ✅ **Routes**: At least one route exists in `data`
 4. ✅ **Amount Match**: `data[0].amountIn` matches your intended input amount
+
+### Time Check ⏳
+**Rule**: If this quote is older than **60 seconds**, discard it and get a new one. Prices change fast!
 
 **If validation fails:**
 ```

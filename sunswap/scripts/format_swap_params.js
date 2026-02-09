@@ -14,23 +14,23 @@ const ROUTER_ADDRESSES = {
 
 const SWAP_EXACT_INPUT_ABI = [{
   "inputs": [
-    {"name": "path", "type": "address[]"},
-    {"name": "poolVersion", "type": "string[]"},
-    {"name": "versionLen", "type": "uint256[]"},
-    {"name": "fees", "type": "uint24[]"},
+    { "name": "path", "type": "address[]" },
+    { "name": "poolVersion", "type": "string[]" },
+    { "name": "versionLen", "type": "uint256[]" },
+    { "name": "fees", "type": "uint24[]" },
     {
       "components": [
-        {"name": "amountIn", "type": "uint256"},
-        {"name": "amountOutMin", "type": "uint256"},
-        {"name": "to", "type": "address"},
-        {"name": "deadline", "type": "uint256"}
+        { "name": "amountIn", "type": "uint256" },
+        { "name": "amountOutMin", "type": "uint256" },
+        { "name": "to", "type": "address" },
+        { "name": "deadline", "type": "uint256" }
       ],
       "name": "data",
       "type": "tuple"
     }
   ],
   "name": "swapExactInput",
-  "outputs": [{"name": "amountsOut", "type": "uint256[]"}],
+  "outputs": [{ "name": "amountsOut", "type": "uint256[]" }],
   "stateMutability": "payable",
   "type": "function"
 }];
@@ -43,30 +43,30 @@ function formatSwapParams(quoteData, recipient, network = 'nile', slippage = 0.2
   // 1. Merge consecutive versions and calculate versionLen
   const mergedVersions = [];
   const versionLen = [];
-  
+
   if (poolVersions.length > 0) {
     let currentVer = poolVersions[0];
     let poolCount = 1;
 
     for (let i = 1; i < poolVersions.length; i++) {
-        if (poolVersions[i] === currentVer) {
-            poolCount++;
-        } else {
-            mergedVersions.push(currentVer);
-            versionLen.push(poolCount + 1);
-            currentVer = poolVersions[i];
-            poolCount = 1;
-        }
+      if (poolVersions[i] === currentVer) {
+        poolCount++;
+      } else {
+        mergedVersions.push(currentVer);
+        versionLen.push(poolCount + 1);
+        currentVer = poolVersions[i];
+        poolCount = 1;
+      }
     }
     mergedVersions.push(currentVer);
     versionLen.push(poolCount + 1);
 
     if (mergedVersions.length === 1) {
-        versionLen[0] = path.length;
+      versionLen[0] = path.length;
     } else {
-        for (let i = 1; i < versionLen.length; i++) {
-            versionLen[i] = versionLen[i] - 1;
-        }
+      for (let i = 1; i < versionLen.length; i++) {
+        versionLen[i] = versionLen[i] - 1;
+      }
     }
   }
 
@@ -74,21 +74,36 @@ function formatSwapParams(quoteData, recipient, network = 'nile', slippage = 0.2
   const fees = poolFees.map(f => parseInt(f));
 
   // 3. Amount Conversion
-  const amountInSun = amountIn.includes('.') 
+  const amountInSun = amountIn.includes('.')
     ? BigInt(Math.floor(parseFloat(amountIn) * 1e6)).toString()
     : amountIn;
-  
+
+  // Smart Slippage Normalization
+  let validSlippage = typeof slippage === 'string' ? parseFloat(slippage.replace('%', '')) : slippage;
+
+  // If > 1, assume percentage (e.g. 5 => 5% => 0.05)
+  // If <= 1, assume ratio (e.g. 0.05 => 5%)
+  if (validSlippage > 1) {
+    validSlippage = validSlippage / 100;
+  }
+
+  // Safety Warning
+  if (validSlippage > 0.05) { // Warning if > 5%
+    console.warn(`⚠️  WARNING: High slippage set: ${(validSlippage * 100).toFixed(2)}%`);
+  }
+
   const amountOutNum = parseFloat(amountOut);
-  const minOutSun = BigInt(Math.floor(amountOutNum * (1 - slippage) * 1e6)).toString();
+  // Calculate minOut based on normalized slippage
+  const minOutSun = BigInt(Math.floor(amountOutNum * (1 - validSlippage) * 1e6)).toString();
 
   // 4. Generate deadline (current time + 5 minutes)
   const deadline = Math.floor(Date.now() / 1000) + 300;
 
   const dataTuple = [
-      amountInSun,
-      minOutSun,
-      recipient,
-      deadline.toString()
+    amountInSun,
+    minOutSun,
+    recipient,
+    deadline.toString()
   ];
 
   // 5. Validation
@@ -102,7 +117,8 @@ function formatSwapParams(quoteData, recipient, network = 'nile', slippage = 0.2
 
   // 6. Check if input is TRX (native)
   const isTRXInput = path[0] === TRX_ADDRESS;
-  const value = isTRXInput ? amountInSun : undefined;
+  // Convert to hex to avoid CLI type inference issues (mcporter auto-converts numeric strings to Number)
+  const value = isTRXInput ? `0x${BigInt(amountInSun).toString(16)}` : undefined;
 
   // 7. Build MCP write_contract parameters
   const mcpParams = {
@@ -143,7 +159,7 @@ function formatSwapParams(quoteData, recipient, network = 'nile', slippage = 0.2
 // CLI Usage
 if (require.main === module) {
   const args = process.argv.slice(2);
-  
+
   if (args.length < 3) {
     console.error('Usage: node format_swap_params.js \'<quote_json>\' \'<recipient>\' \'<network>\' [slippage]');
     console.error('');
@@ -151,7 +167,7 @@ if (require.main === module) {
     console.error('  quote_json  - API response data[0] object');
     console.error('  recipient   - Wallet address (e.g., TL9kq3Fvw7dSpjgn3rBB8aJS8zhW8GvqGH)');
     console.error('  network     - mainnet or nile');
-    console.error('  slippage    - Optional, default 0.20 (20%)');
+    console.error('  slippage    - Optional, default 0.05 (5%)');
     console.error('');
     console.error('Example:');
     console.error('  node format_swap_params.js \\');
@@ -166,19 +182,19 @@ if (require.main === module) {
     const quoteData = JSON.parse(args[0]);
     const recipient = args[1];
     const network = args[2];
-    const slippage = args[3] ? parseFloat(args[3]) : 0.20;
-    
-    // Validate slippage
-    if (slippage < 0 || slippage >= 1) {
-      console.error(`Error: Invalid slippage ${slippage}. Must be between 0 and 1 (e.g., 0.05 for 5%)`);
+    const slippage = args[3] ? parseFloat(args[3]) : 0.05; // Default 5%
+
+    // Validate slippage (Relaxed for smart detection)
+    if (slippage < 0) {
+      console.error(`Error: Invalid slippage ${slippage}. Must be positive.`);
       process.exit(1);
     }
 
     const result = formatSwapParams(quoteData, recipient, network, slippage);
-    
+
     // Output MCP params to stdout (clean JSON)
     console.log(JSON.stringify(result.mcpParams, null, 2));
-    
+
     // Output validation to stderr (for debugging)
     if (result.validation.valid) {
       console.error('✓ Validation passed');

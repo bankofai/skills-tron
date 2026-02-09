@@ -51,4 +51,8 @@ Before proceeding to Step 4, confirm:
 - [ ] Allowance re-checked and verified (≥ amountIn)
 - [ ] Ready to proceed to swap execution
 
+## Next Step
+
+→ [Step 3: Price Quote](03_price_quote.md)
+
 **If all checked ✅, proceed to Step 4**

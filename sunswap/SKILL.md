@@ -27,11 +27,6 @@ tags:
 **🚨 ABSOLUTE RULE: User says what token, you use EXACTLY that token!**
 
 **User says "TRX"** → `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb` (native, same on all networks)
-
-**User says "WTRX"** → Network-specific address:
-- **Mainnet**: `TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR`
-- **Nile**: `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a`
-
 **NEVER substitute tokens!** See [INTENT_LOCK.md](INTENT_LOCK.md) for details.
 
 **Key Differences:**
@@ -104,14 +99,6 @@ mcp_mcp_server_tron_write_contract({...output_from_step_5...})
 
 ---
 
-### Quick Token Lookup
-
-```bash
-# Find token address quickly
-node skills/sunswap/scripts/lookup_token.js <SYMBOL> <NETWORK>
-# Example: node skills/sunswap/scripts/lookup_token.js USDT nile
-```
-
 ### Gas Fee Estimates
 
 - **Approve**: ~5-10 TRX
@@ -173,36 +160,18 @@ This skill helps you execute token swaps on SunSwap DEX. Follow the workflow ste
 
 ---
 
-### Step 1: Price Quote
-**File**: [workflow/01_price_quote.md](workflow/01_price_quote.md)
+### Step 1: Balance & Allowance Check
+**File**: [workflow/01_balance_check.md](workflow/01_balance_check.md)
+*   **Always required**: Verify you have sufficient balance and token approval *before* quoting.
 
-**Always required**: Get the best swap route and expected output.
+### Step 2: Approve Token (Conditional)
+**File**: [workflow/02_approve.md](workflow/02_approve.md)
+*   **When**: Only if input is TRC20 and allowance is low.
+*   **TRX Fast Path**: If input is Native TRX, **SKIP THIS STEP**.
 
-**User Message**:
-```
-💰 Step 1: Getting price quote
-📝 Querying: [AMOUNT] [FROM_TOKEN] → [TO_TOKEN]
-```
-
----
-
-### Step 2: Balance & Allowance Check
-**File**: [workflow/02_balance_check.md](workflow/02_balance_check.md)
-
-**Always required**: Verify you have sufficient balance and token approval.
-
-**User Message**:
-```
-📊 Step 2: Checking balance and allowance
-📝 Verifying: Wallet balance and router approval
-```
-
----
-
-### Step 3: Approve Token (Conditional)
-**File**: [workflow/03_approve.md](workflow/03_approve.md)
-
-**When to use**: Only if input is a token (not TRX) AND allowance is insufficient.
+### Step 3: Price Quote
+**File**: [workflow/03_price_quote.md](workflow/03_price_quote.md)
+*   **Always required**: Get the best swap route immediately before execution to ensure freshness.
 
 **User Message**:
 ```
@@ -215,8 +184,9 @@ This skill helps you execute token swaps on SunSwap DEX. Follow the workflow ste
 
 ### Step 4: Execute Swap
 **File**: [workflow/04_execute_swap.md](workflow/04_execute_swap.md)
-
-**Always required**: Execute the actual swap transaction.
+*   **When**: Always, after checks pass.
+*   **Action**: Submit swap transaction using **EXACT** JSON from Step 5 script.
+*   **Warning**: Do not manually modify the JSON parameters.
 
 **User Message**:
 ```
@@ -227,11 +197,16 @@ This skill helps you execute token swaps on SunSwap DEX. Follow the workflow ste
 
 ---
 
-## 📚 Resources & Tools
+## �️ Technical Protocol & Tips
 
-- **Token Registry**: [resources/common_tokens.json](resources/common_tokens.json)
+### ⚠️ MCPorter Usage (CRITICAL)
+*   **No Parentheses**: `mcporter call tool_name` (CORRECT) vs `tool_name()` (WRONG - zsh error).
+*   **JSON Args**: Use `--args '{ "key": "value" }'` for complex inputs.
+
+### ⚡️ Execution Rules
+
+- **Common Tokens List**: Consult [workflow/00_token_lookup.md](workflow/00_token_lookup.md) for available tokens.
 - **Contract Addresses**: [resources/sunswap_contracts.json](resources/sunswap_contracts.json)
-- **Token Lookup**: [scripts/lookup_token.js](scripts/lookup_token.js) - Quick token address finder
 - **Parameter Formatter**: [scripts/format_swap_params.js](scripts/format_swap_params.js) - Converts API quote to MCP params
 - **Complete Examples**: [examples/](examples/) - Real working examples with full output
 
@@ -244,12 +219,17 @@ This skill helps you execute token swaps on SunSwap DEX. Follow the workflow ste
 
 ---
 
-## 🚨 Critical Rules
+## 🚨 CRITICAL PROTOCOL
 
-1. **Respect User's Token Choice**: Use EXACTLY the token user specified (see top of document)
-2. **User Communication**: Announce every step before and after execution
-3. **No Shortcuts**: Follow all steps in order
-4. **Use Helper Script**: Always use `format_swap_params.js` for parameter formatting
+1.  **RESPECT USER CHOICE**: Use EXACTLY the token user specified. NEVER substitute tokens!
+2.  **CHECK FIRST**: Always check Balance (and Allowance for TRC20) before swapping.
+3.  **COMMUNICATE**: Announce every step ("🔄 Checking...", "✅ Approved", "❌ Error").
+4.  **USE TOOLS**: Use provided scripts for token lookup and parameter formatting.
+
+### ❌ Common Mistakes (DO NOT DO THIS)
+*   **Manual JSON**: NEVER construct complex JSON in shell. Use `format_swap_params.js` output.
+*   **Silent Execution**: NEVER run multiple steps without reporting progress.
+*   **Skipping Checks**: NEVER swap without verifying balance and allowance first (even for TRX).
 5. **Include ABI**: Always include ABI for Nile testnet
 
 ---
@@ -259,31 +239,11 @@ This skill helps you execute token swaps on SunSwap DEX. Follow the workflow ste
 Each workflow step is in a separate file to keep context focused:
 
 - `workflow/00_token_lookup.md` - Find token addresses
-- `workflow/01_price_quote.md` - Get swap quote from API
-- `workflow/02_balance_check.md` - Verify balance and allowance
-- `workflow/03_approve.md` - Approve token spending
+- `workflow/01_balance_check.md` - Verify balance and allowance
+- `workflow/02_approve.md` - Approve token spending
+- `workflow/03_price_quote.md` - Get swap quote from API
 - `workflow/04_execute_swap.md` - Execute the swap
 
 **Load only the file you need for the current step.**
 
 ---
-
-## 🔧 Troubleshooting
-
-**Only consult this section if you encounter errors.**
-
-### API Errors
-
-**400 Bad Request**: Check that you're using the exact API format from the Quick Reference Card above.
-
-**Empty data array**: The token pair may not have liquidity on this network. Verify token addresses are correct for the network (mainnet vs nile).
-
-**Response validation fails**: Ensure `amountIn` in the response matches your intended input amount.
-
-### Transaction Errors
-
-**INSUFFICIENT_OUTPUT_AMOUNT**: Increase slippage tolerance or split into smaller swaps.
-
-**TRANSFER_FAILED**: Check balance and allowance (return to Step 2).
-
-**EXPIRED**: Deadline passed - get a new quote and retry.
