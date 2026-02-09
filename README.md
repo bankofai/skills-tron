@@ -27,41 +27,14 @@ Completes DEX trade
 
 ## Quick Start
 
-### For OpenClaw Users (Recommended)
-
-**Complete installation** (skills + MCP server):
-```bash
-git clone https://github.com/bankofai/skills-tron.git
-cd skills-tron/installer
-./install-skills.sh
-```
-
-
-
-This will install skills to `~/.openclaw/skills/`.
-
-**Note**: You also need the [OpenClaw Extension](https://github.com/bankofai/openclaw-extension) for these skills to work.
-
-### For Developers / Manual Installation
-
-#### 1. Clone Repository
-
-```bash
-git clone https://github.com/bankofai/skills-tron.git
-cd skills-tron
-```
-
-#### 2. Browse Available Skills
-
-```bash
-ls -la
-```
+### 1. Browse Available Skills
 
 Currently available:
-- **sunswap/** - SunSwap DEX Trading (TRON token swaps)
-- **x402-tron-payment (Payment Protocol)** - Pay for x402-enabled Agent endpoints using TRC20 tokens (USDT/USDD) on TRON.
+- **sunswap/** - SunSwap DEX trading skill for TRON token swaps
+- **x402_tron_payment/** - Enables agent payments on TRON network (x402 protocol)
+- **x402_tron_payment_demo/** - Demo of x402 payment protocol
 
-#### 3. Use a Skill
+### 2. Use a Skill
 
 Tell your AI Agent:
 ```
@@ -98,8 +71,45 @@ skills-tron/
 
 ## Available Skills
 
-- **[SunSwap Skills](sunswap/README.md)**: DEX Trading (TRON token swaps)
-- **[x402-tron-payment](x402_tron_payment/SKILL.md)**: TRC20 Payments for AI Agents (USDT/USDD)
+### 🔄 [SunSwap Skill](sunswap/README.md)
+
+Execute token swaps on SunSwap DEX using Smart Router for optimal routing across V1/V2/V3/PSM pools.
+
+**Features**:
+- ✅ Multi-version pool routing (V1/V2/V3/PSM)
+- ✅ Price quotes with slippage protection
+- ✅ Token approval management
+- ✅ Balance checking
+- ✅ Mainnet & Nile testnet support
+
+**Quick Example**:
+```
+"Read the sunswap skill and help me swap 100 USDT to TRX"
+```
+
+**Networks**:
+- Mainnet: Smart Router `TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax`
+- Nile Testnet: Smart Router `TMEkn7zwGJvJsRoEkiTKfGRGZS2yMdVmu3`
+
+**Documentation**: [sunswap/SKILL.md](sunswap/SKILL.md)
+
+### 💳 [x402 TRON Payment](x402_tron_payment/SKILL.md)
+
+Enables agent payments on TRON network using x402 protocol with TRC20 tokens (USDT/USDD).
+
+**Features**:
+- ✅ Pay for AI agent services with USDT/USDD
+- ✅ Automatic payment verification
+- ✅ Protected content access
+
+**Quick Example**:
+```
+"Read the x402_tron_payment skill and explain how it works"
+```
+
+### 🎮 [x402 Payment Demo](x402_tron_payment_demo/SKILL.md)
+
+Demo skill showing x402 payment protocol in action by fetching a protected image.
 
 ---
 
