@@ -27,4 +27,4 @@ Simply tell the Agent:
     - **Tron Shasta**: `https://x402-tron-demo.bankofai.io/protected-shasta`
     - **Tron Mainnet**: `https://x402-tron-demo.bankofai.io/protected-mainnet`
 2.  **Handle Payment**: Perform the payment and resource acquisition automatically as guided by the protocol (handling 402 Payment Required, signing permits, etc.).
-3.  **Display & Cleanup**: Once the image is retrieved, present it to the user. Immediately delete the local temporary file after the image has been displayed.
+3.  **Display & Cleanup**: Once the image is retrieved, present / send it to the user. Immediately delete the local temporary file after the image has been displayed.
