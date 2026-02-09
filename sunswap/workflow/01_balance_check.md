@@ -1,10 +1,27 @@
 
-# 2. 📊 Balance & Allowance Check
+# 1. 📊 Balance & Allowance Check
 
 ## Overview
-Confirm you have enough tokens for the swap and that the Router is authorized to spend them.
+Check if you have enough tokens and allowance.
 
 ---
+
+## ✅ Step 1 Completion Checklist
+
+...
+
+**Decision**:
+- If `allowance >= amountIn`: **Proceed to Step 3** (Price Quote).
+- If `allowance < amountIn`: **Proceed to Step 2** (Approve).
+- If from token is TRX: **Proceed to Step 3** (Price Quote).
+
+---
+
+## Next Step
+
+→ [Step 2: Approve Token](02_approve.md) (Conditional)
+OR
+→ [Step 3: Price Quote](03_price_quote.md) (If approved/native)
 
 ## 🔑 Step 2.0: Get Wallet Address
 
@@ -90,8 +107,7 @@ Confirm you have enough tokens for the swap and that the Router is authorized to
 - **Arguments**:
   - `owner`: Wallet address from Step 2.0
   - `spender`: SunSwap Router address
-    - Nile: `TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax`
-    - Mainnet: `TMEkn7zwGJvJsRoEkKTKfGRGZS2yMdVmu3`
+    - **Refer to**: `resources/sunswap_contracts.json` for current Router addresses.
 
 **Returns**: Allowed amount as raw integer (includes token's decimals)
 

@@ -179,7 +179,7 @@ versionLen = [3, 1]
 
 **Tool**: `write_contract` -> `swapExactInput`
 
-- **Contract**: Router Address (`TKzxd...` mainnet)
+- **Contract**: Router Address (See `resources/sunswap_contracts.json`)
 - **Args**: Construct using Helper Script above.
     - `path`: Array of Token Addresses
     - `poolVersion`: Array of Version Strings (Merged)
@@ -232,15 +232,24 @@ versionLen = [3, 1]
 
 ## ✅ Step 4 Completion Checklist
 
-After swap execution, confirm:
+After swap execution, YOU MUST VERIFY:
 
+### 1. Check Transaction Info
+**Tool**: `get_transaction_info`
+- **Success**: `contractResult` keys are not empty.
+- **Fail**: `result: "FAILED"` or `contractResult` shows error.
+
+### 2. Fallback Verification (If Info Empty)
+**Condition**: If `get_transaction_info` returns `{}` (empty), do NOT assume failure.
+**Action**: Call `get_transaction` (by ID).
+**Check**:
+- `ret[0].contractRet === 'SUCCESS'` ✅ **CONFIRMED**
+- `ret[0].contractRet !== 'SUCCESS'` ❌ **FAILED**
+
+### 3. Final Confirmation
 - [ ] Transaction hash received
-- [ ] Transaction confirmed on blockchain
-- [ ] Output amount received (check wallet balance)
-- [ ] Output amount within expected range (considering slippage)
-- [ ] No errors in transaction logs
-
-**If all checked ✅, swap complete! 🎉**
+- [ ] Confirmed via `get_transaction_info` OR `get_transaction`
+- [ ] Output amount received (balance check)
 
 ---
 

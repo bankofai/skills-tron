@@ -18,67 +18,65 @@
 
 ---
 
-## Step 1: Check Local Registry
+## 🔍 Step 1: Check Local Registry (PRIORITY)
 
-**File**: `skills/sunswap/resources/common_tokens.json`
+**File**: This document serves as the registry.
 
-**Common tokens available:**
-- **Mainnet**: USDT, WTRX, TRX, USDD, BTT, JST, SUN
-- **Nile**: USDT, WTRX, TRX, USDC, SUN, USDJ, TUSD, JST
+### 🌐 Mainnet Tokens
 
-**If found**: Use the address and proceed to Step 1 (Price Quote).
+| Symbol | Address | Decimals | Description |
+| :--- | :--- | :--- | :--- |
+| **TRX** | `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb` | 6 | Native Token |
+| **USDT** | `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` | 6 | Tether USD |
+| **WTRX** | `TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR` | 6 | Wrapped TRX |
+| **USDD** | `TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn` | 18 | Decentralized USD |
+| **BTT** | `TAFjULxiVgT4qWk6UZwjqwZXTSaGaqnVp4` | 18 | BitTorrent |
+| **JST** | `TCFLL5dx5ZJdKnWuesXxi1VPwjLVmWZZy9` | 18 | JUST |
+| **SUN** | `TSSMHYeV2uE9qYH95DqyoCuNCzEL1NvU3S` | 18 | SUN Token |
 
----
+### 🧪 Nile Testnet Tokens
 
-## Step 2: Query Contract (If Not Found)
+| Symbol | Address | Decimals | Description |
+| :--- | :--- | :--- | :--- |
+| **TRX** | `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb` | 6 | Native Token |
+| **USDT** | `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` | 6 | Test USDT |
+| **WTRX** | `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a` | 6 | Test WTRX |
+| **USDC** | `TWMCMCoJPqCGw5RR7eChF2HoY3a9B8eYA3` | 6 | Test USDC |
+| **SUN** | `TWrZRHY9aKQZcyjpovdH6qeCEyYZrRQDZt` | 18 | Test SUN |
+| **USDJ** | `TLBaRhANQoJFTqre9Nf1mjuwNWjCJeYqUL` | 18 | Test USDJ |
+| **TUSD** | `TRz7J6dD2QWxBoumfYt4b3FaiRG23pXfop` | 18 | Test TUSD |
+| **JST** | `TF17BgPaZYbz8oxbjhriubPDsA7ArKoLX3` | 18 | Test JST |
 
-Use MCP `read_contract` to query the token contract.
-
-### Query Symbol
-
-```javascript
-mcp_mcp_server_tron_read_contract({
-  contractAddress: "TOKEN_ADDRESS",
-  functionName: "symbol",
-  args: [],
-  network: "nile"
-})
-// Returns: "USDC"
-```
-
-### Query Decimals
-
-```javascript
-mcp_mcp_server_tron_read_contract({
-  contractAddress: "TOKEN_ADDRESS",
-  functionName: "decimals",
-  args: [],
-  network: "nile"
-})
-// Returns: 6
-```
+**Action**:
+1.  Find your token in the tables above.
+2.  **If found**: ✅ **USE THAT ADDRESS**.
+3.  **If NOT found**: ❌ **Proceed to Step 2** (On-Chain Lookup).
 
 ---
 
-## Common Token Reference
+## 🔍 Step 2: On-Chain Lookup (FALLBACK)
 
-### ⚠️ TRX vs WTRX - CRITICAL
+**Use this if the token is NOT in the tables above.**
 
-**User says "TRX"** → Use: `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb`
-**User says "WTRX"** → Use: `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a` (nile)
+1.  **Ask User**: "Please provide the contract address for [TOKEN]."
+2.  **Verify**: Use `mcp-server-tron` to get decimals and symbol.
 
-**NEVER substitute one for the other!**
+### Query Token Details
 
-### Nile Testnet
+**Tool**: `read_contract`
 
-| Symbol | Address | Decimals | Notes |
-|--------|---------|----------|-------|
-| **TRX** | `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb` | 6 | Native token, use `value` param |
-| **WTRX** | `TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a` | 6 | Wrapped TRC20, needs approval |
-| USDT | `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` | 6 | |
-| USDC | `TWMCMCoJPqCGw5RR7eChF2HoY3a9B8eYA3` | 6 | |
+### Query Token Details
 
----
+**Tool**: `read_contract`
+
+| Step | Function | Goal | Arguments |
+| :--- | :--- | :--- | :--- |
+| **1** | `decimals` | **CRITICAL**: Get decimals for formatting | `[]` (None) |
+| **2** | `symbol` | Verify token identity | `[]` (None) |
+
+**Instructions**:
+1. Cal `decimals` first. You MUST know this to format the `amountIn` correctly in Step 1.
+2. Call `symbol` to double-check it matches the user's request.
 
 ## Error Handling
 
@@ -93,4 +91,4 @@ mcp_mcp_server_tron_read_contract({
 
 ## Next Step
 
-→ [Step 1: Price Quote](01_price_quote.md)
+→ [Step 1: Balance & Allowance Check](01_balance_check.md)
