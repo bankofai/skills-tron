@@ -175,7 +175,7 @@ async function register() {
 
 // Show usage if no arguments
 if (process.argv.length === 2) {
-  console.log('TRC-8004 Multi-Chain Agent Registration');
+  console.log('ERC-8004 Multi-Chain Agent Registration');
   console.log('');
   console.log('Usage:');
   console.log('  node register-multichain.js --uri "ipfs://..." --chain tron --network mainnet');

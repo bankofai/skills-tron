@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Multi-Chain Adapter for TRC-8004
- * Supports TRON and EVM chains (BSC, Ethereum, etc.)
+ * Multi-Chain Adapter for ERC-8004
+ * Supports TRON (TRC-8004) and EVM chains (BSC, Ethereum, etc.)
  */
 
 const TronWebModule = require('tronweb');

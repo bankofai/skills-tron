@@ -1,15 +1,15 @@
 ---
-name: tron-8004
-description: TRC-8004 Trustless Agents - Register and manage AI agent identities on TRON and BSC blockchains with on-chain reputation tracking
+name: erc-8004
+description: ERC-8004 Trustless Agents - Register and manage AI agent identities on TRON and BSC blockchains with on-chain reputation tracking
 ---
 
-# TRC-8004: Trustless Agents on TRON
+# ERC-8004: Trustless Agents on TRON & BSC
 
 On-chain identity, reputation, and validation for autonomous agents on TRON. **Now live on TRON Mainnet + BSC Mainnet!**
 
 ## Overview
 
-TRC-8004 provides three registries on TRON blockchain:
+ERC-8004 provides three registries on TRON and BSC blockchains:
 - **Identity Registry** - TRC-721 agent identities with registration metadata
 - **Reputation Registry** - Signed feedback scores between agents/clients
 - **Validation Registry** - Independent verification (zkML, TEE, stakers)
@@ -52,11 +52,11 @@ export TRON_PRIVATE_KEY="your_64_character_hex_private_key"
 | **Nile** | Live | `TDDk4vc69nzBCbsY4kfu7gw2jmvbinirj5` | `TBVaGd6mBuGuN5ebcvPvRaJo4rtEWqsW6Y` | `TGGkHDHhBzhFcLNcEogAWJkvfFYy4jyrSw` |
 | **Shasta** | Live | `TH775ZzfJ5V25EZkFuX6SkbAP53ykXTcma` | `TTkds2ZZKBTChZHho4wcWAa7eWQTxh5TUT` | `TQBFHtKRiaQjc1xp4LtmmXKYdA7JLN89w3` |
 
-**Note:** TRON deployments may have different contract versions. Query scripts use compatibility mode:
+**Note:** TRON deployments implement TRC-8004 (TRON version of ERC-8004). Query scripts use compatibility mode:
 - ✅ Always available: `ownerOf`, `tokenURI` (ERC-721 standard)
 - ⚠️ May vary: `agentURI`, `getAgentWallet`, `agentExists` (ERC-8004 extensions)
 
-### BSC Networks (NEW!)
+### BSC Networks
 
 | Network | Status | Identity Registry | Reputation Registry | Validation Registry |
 |---------|--------|-------------------|---------------------|---------------------|
@@ -110,7 +110,7 @@ The reputation system uses signed fixed-point numbers (`value` + `valueDecimals`
 
 ## Trust Models
 
-TRC-8004 supports three pluggable trust models:
+ERC-8004 supports three pluggable trust models:
 - **Reputation-based** - Client feedback with scores, tags, and metadata
 - **Crypto-economic** - Stake-secured validation with economic incentives
 - **Crypto-verification** - TEE attestations and zkML proofs
@@ -233,4 +233,4 @@ chmod 600 ~/.clawdbot/wallets/.deployer_pk
 
 ---
 
-*Compatible with ERC-8004 specification, adapted for TRON blockchain*
+*Compatible with ERC-8004 specification. TRON implementation is TRC-8004.*

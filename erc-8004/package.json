@@ -1,7 +1,7 @@
 {
-  "name": "tron-8004",
+  "name": "erc-8004",
   "version": "1.0.0",
-  "description": "TRC-8004 Trustless Agents - On-chain identity, reputation, and validation for AI agents on TRON",
+  "description": "ERC-8004 Trustless Agents - On-chain identity, reputation, and validation for AI agents on TRON and BSC",
   "main": "index.js",
   "scripts": {
     "register": "node scripts/register.js",
@@ -10,9 +10,10 @@
     "set-uri": "node scripts/set-uri.js"
   },
   "keywords": [
-    "tron",
-    "trc-8004",
     "erc-8004",
+    "trc-8004",
+    "tron",
+    "bsc",
     "agents",
     "ai",
     "reputation",
