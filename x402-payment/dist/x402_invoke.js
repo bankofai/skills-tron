@@ -283,6 +283,7 @@ const external_os_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta
 
 
 async function findPrivateKey(type) {
+    // 1. Check environment variables
     if (type === 'tron') {
         if (process.env.TRON_PRIVATE_KEY)
             return process.env.TRON_PRIVATE_KEY;
@@ -293,7 +294,86 @@ async function findPrivateKey(type) {
         if (process.env.ETH_PRIVATE_KEY)
             return process.env.ETH_PRIVATE_KEY;
     }
-    return process.env.PRIVATE_KEY;
+    if (process.env.PRIVATE_KEY)
+        return process.env.PRIVATE_KEY;
+    // 2. Check local config files
+    const configFiles = [
+        external_path_.join(process.cwd(), 'x402-config.json'),
+        external_path_.join(external_os_namespaceObject.homedir(), '.x402-config.json')
+    ];
+    for (const file of configFiles) {
+        if (external_fs_.existsSync(file)) {
+            try {
+                const config = JSON.parse(external_fs_.readFileSync(file, 'utf8'));
+                if (type === 'tron') {
+                    const key = config.tron_private_key || config.private_key;
+                    if (key)
+                        return key;
+                }
+                else {
+                    const key = config.evm_private_key || config.eth_private_key || config.private_key;
+                    if (key)
+                        return key;
+                }
+            }
+            catch (e) { /* ignore */ }
+        }
+    }
+    // 3. Check mcporter config
+    const mcporterPath = external_path_.join(external_os_namespaceObject.homedir(), '.mcporter', 'mcporter.json');
+    if (external_fs_.existsSync(mcporterPath)) {
+        try {
+            const config = JSON.parse(external_fs_.readFileSync(mcporterPath, 'utf8'));
+            if (config.mcpServers) {
+                for (const serverName in config.mcpServers) {
+                    const s = config.mcpServers[serverName];
+                    if (type === 'tron' && s?.env?.TRON_PRIVATE_KEY)
+                        return s.env.TRON_PRIVATE_KEY;
+                    if (type === 'evm' && (s?.env?.EVM_PRIVATE_KEY || s?.env?.ETH_PRIVATE_KEY)) {
+                        return s.env.EVM_PRIVATE_KEY || s.env.ETH_PRIVATE_KEY;
+                    }
+                    if (s?.env?.PRIVATE_KEY)
+                        return s.env.PRIVATE_KEY;
+                }
+            }
+        }
+        catch (e) { /* ignore */ }
+    }
+    return undefined;
+}
+async function findApiKey() {
+    if (process.env.TRON_GRID_API_KEY)
+        return process.env.TRON_GRID_API_KEY;
+    const configFiles = [
+        external_path_.join(process.cwd(), 'x402-config.json'),
+        external_path_.join(external_os_namespaceObject.homedir(), '.x402-config.json')
+    ];
+    for (const file of configFiles) {
+        if (external_fs_.existsSync(file)) {
+            try {
+                const config = JSON.parse(external_fs_.readFileSync(file, 'utf8'));
+                const key = config.tron_grid_api_key || config.api_key;
+                if (key)
+                    return key;
+            }
+            catch (e) { /* ignore */ }
+        }
+    }
+    const mcporterPath = external_path_.join(external_os_namespaceObject.homedir(), '.mcporter', 'mcporter.json');
+    if (external_fs_.existsSync(mcporterPath)) {
+        try {
+            const config = JSON.parse(external_fs_.readFileSync(mcporterPath, 'utf8'));
+            if (config.mcpServers) {
+                for (const serverName in config.mcpServers) {
+                    const s = config.mcpServers[serverName];
+                    if (s?.env?.TRON_GRID_API_KEY)
+                        return s.env.TRON_GRID_API_KEY;
+                }
+            }
+        }
+        catch (e) { /* ignore */ }
+    }
+    return undefined;
 }
 async function main() {
     const args = process.argv.slice(2);
@@ -316,17 +396,21 @@ async function main() {
     const entrypoint = options.entrypoint;
     const inputRaw = options.input;
     const methodArg = options.method;
+    const networkName = options.network || 'nile';
     // Use dynamic imports
     // @ts-ignore
     const { TronWeb } = await __nccwpck_require__.e(/* import() */ 270).then(__nccwpck_require__.bind(__nccwpck_require__, 2270));
     global.TronWeb = TronWeb;
     const { TronClientSigner, EvmClientSigner, X402Client, X402FetchClient, ExactTronClientMechanism, ExactEvmClientMechanism, ExactPermitTronClientMechanism, ExactPermitEvmClientMechanism, SufficientBalancePolicy } = await Promise.all(/* import() */[__nccwpck_require__.e(270), __nccwpck_require__.e(942)]).then(__nccwpck_require__.bind(__nccwpck_require__, 4942));
+    const tronKey = await findPrivateKey('tron');
+    const evmKey = await findPrivateKey('evm');
+    const apiKey = await findApiKey();
     if (options.check === 'true' || options.status === 'true') {
-        const tronKey = await findPrivateKey('tron');
-        const evmKey = await findPrivateKey('evm');
         if (tronKey) {
             const signer = new TronClientSigner(tronKey);
             console.error(`[OK] TRON Wallet: ${signer.getAddress()}`);
+            if (apiKey)
+                console.error(`[OK] TRON_GRID_API_KEY is configured.`);
         }
         if (evmKey) {
             const signer = new EvmClientSigner(evmKey);
@@ -338,9 +422,19 @@ async function main() {
         console.error('Error: --url is required');
         process.exit(1);
     }
+    // Redirect console.log to console.error to prevent library pollution of STDOUT
+    const originalConsoleLog = console.log;
+    console.log = console.error;
     const client = new X402Client();
-    const tronKey = await findPrivateKey('tron');
     if (tronKey) {
+        const tronWebOptions = { fullHost: 'https://nile.trongrid.io', privateKey: tronKey };
+        if (networkName === 'mainnet')
+            tronWebOptions.fullHost = 'https://api.trongrid.io';
+        if (networkName === 'shasta')
+            tronWebOptions.fullHost = 'https://api.shasta.trongrid.io';
+        if (apiKey)
+            tronWebOptions.headers = { 'TRON-PRO-API-KEY': apiKey };
+        const tw = new TronWeb(tronWebOptions);
         const signer = new TronClientSigner(tronKey);
         const networks = ['mainnet', 'nile', 'shasta', '*'];
         for (const net of networks) {
@@ -350,7 +444,6 @@ async function main() {
         }
         console.error(`[x402] TRON mechanisms enabled.`);
     }
-    const evmKey = await findPrivateKey('evm');
     if (evmKey) {
         const signer = new EvmClientSigner(evmKey);
         client.register('eip155:*', new ExactEvmClientMechanism(signer));
@@ -417,8 +510,21 @@ async function main() {
         }, null, 2) + '\n');
     }
     catch (error) {
-        console.error(`[x402] Error: ${error.message}`);
-        process.stdout.write(JSON.stringify({ error: error.message }, null, 2) + '\n');
+        let message = error.message || 'Unknown error';
+        let stack = error.stack || '';
+        // Sanitize any potential private key leaks in error messages/stacks
+        const keys = [tronKey, evmKey].filter(Boolean);
+        for (const key of keys) {
+            const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const keyRegex = new RegExp(escapedKey, 'g');
+            message = message.replace(keyRegex, '[REDACTED]');
+            stack = stack.replace(keyRegex, '[REDACTED]');
+        }
+        console.error(`[x402] Error: ${message}`);
+        process.stdout.write(JSON.stringify({
+            error: message,
+            stack: stack
+        }, null, 2) + '\n');
         process.exit(1);
     }
 }

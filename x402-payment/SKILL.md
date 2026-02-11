@@ -5,6 +5,24 @@ version: 1.3.0
 author: bankofai
 homepage: https://x402.org
 tags: [crypto, payments, x402, agents, api, usdt, usdd, usdc, tron, ethereum, evm, erc20, trc20]
+requires_tools: [x402_invoke]
+# Tool implementation mapping: x402_invoke -> dist/x402_invoke.js
+arguments:
+  url:
+    description: "Base URL of the agent (v2) or full URL (v1/Discovery)"
+    required: true
+  entrypoint:
+    description: "Entrypoint name to invoke (e.g., 'chat', 'search')"
+    required: false
+  input:
+    description: "Input object to send to the entrypoint"
+    required: false
+  method:
+    description: "HTTP method (GET/POST). Default: POST (v2), GET (Direct)"
+    required: false
+  network:
+    description: "Network name (nile, mainnet, bsc-testnet, bsc)"
+    required: false
 dependencies:
   - mcp-server-tron
 ---
@@ -22,6 +40,8 @@ The `x402-payment` skill enables agents to interact with paid API endpoints. Whe
 - **Wallet Configuration**:
   - **TRON**: Set `TRON_PRIVATE_KEY` for TRC20 payments (USDT/USDD).
   - **EVM**: Set `EVM_PRIVATE_KEY` or `ETH_PRIVATE_KEY` for ERC20 payments (USDT/USDC).
+  - The skill also searches for keys in `x402-config.json` and `~/.mcporter/mcporter.json`.
+- **TronGrid API Key**: Required for **Mainnet** to avoid rate limits (`TRON_GRID_API_KEY`).
 - **Tool**: The `x402_invoke.js` script must be built and available in `dist/`.
 
 ## Usage Instructions
@@ -42,27 +62,52 @@ node x402-payment/dist/x402_invoke.js \
   --network nile
 ```
 
-### 3. Cross-Chain Support
+### 3. Agent Discovery (Direct)
+- **Manifest**: Fetch agent metadata.
+  ```bash
+  node x402-payment/dist/x402_invoke.js --url https://api.example.com/.well-known/agent.json
+  ```
+- **List Entrypoints**: List available functions.
+  ```bash
+  node x402-payment/dist/x402_invoke.js --url https://api.example.com/entrypoints
+  ```
+
+### 4. Cross-Chain Support
 - **TRON (TRC20)**: Use `--network nile` (testnet) or `mainnet`.
 - **BSC (ERC20)**: Use `--network bsc-testnet` (testnet) or `bsc` (mainnet).
 
 ## Supported Networks & Tokens
 
-| Chain | Network Name | Common Tokens |
-|-------|--------------|---------------|
-| **TRON** | `mainnet`, `nile` | USDT, USDD |
-| **BSC** | `bsc`, `bsc-testnet` | USDT, USDC, DHLU |
+| Chain | Network Name | Common Tokens | USDT Contract |
+|-------|--------------|---------------|---------------|
+| **TRON** | `mainnet` | USDT, USDD | `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` |
+| **TRON** | `nile` | USDT, USDD | `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` |
+| **BSC** | `bsc` | USDT, USDC | `0x55d398326f99059fF775485246999027B3197955` |
+| **BSC** | `bsc-testnet`| USDT, USDC, DHLU | `0x337610d27c682E347C9cD60BD4b3b107C9d34dDd` |
 
-## Security Considerations
+## Security Considerations & Rules
 
 > [!CAUTION]
 > **Private Key Safety**: NEVER output your private keys to the logs or console. The `x402_invoke` tool loads keys from environment variables internally.
-> Use `node x402_invoke.js --check` to safely verify your address.
+
+### Agent Security Rules:
+- **No Private Key Output**: The Agent MUST NOT print, echo, or output any private key to the dialogue context.
+- **Internal Loading Only**: Rely on the tool to load keys internally.
+- **No Export Commands**: DO NOT execute shell commands containing the private key as a literal string.
+- **Silent Environment Checks**: Use `[[ -n $TRON_PRIVATE_KEY ]] && echo "Configured" || echo "Missing"` to verify configuration without leaking secrets.
+- **Use the Check Tool**: Use `node x402_invoke.js --check` to safely verify addresses.
+
+## Binary and Image Handling
+
+If the endpoint returns an image or binary data:
+1. The data is saved to a temporary file (e.g., `/tmp/x402_image_...`).
+2. The tool returns JSON with `file_path`, `content_type`, and `bytes`.
+3. **Important**: The Agent is responsible for deleting the temporary file after use.
 
 ## Error Handling
 
 ### Insufficient Allowance
-If you haven't approved the agent's contract to spend your tokens, the tool will automatically attempt an "infinite approval" transaction. Ensure you have enough native tokens (TRX or ETH) for gas fees.
+If allowance is insufficient, the tool will automatically attempt an "infinite approval" transaction. Ensure you have native tokens (TRX or BNB/ETH) for gas.
 
 ### Insufficient Balance
 Ensure you have enough USDT/USDC/USDD in your wallet on the specified network.
