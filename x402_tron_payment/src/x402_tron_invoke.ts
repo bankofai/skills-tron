@@ -3,7 +3,7 @@ import {
   TronClientSigner,
   X402Client,
   X402FetchClient,
-  ExactTronClientMechanism,
+  ExactPermitTronClientMechanism,
   SufficientBalancePolicy
 } from '@bankofai/x402-tron';
 // @ts-ignore
@@ -273,7 +273,7 @@ async function main() {
     console.error(`[x402] Initialized signer for address: ${signer.getAddress()} on network: ${config.network}`);
 
     // 3. Initialize Mechanism
-    const mechanism = new ExactTronClientMechanism(signer);
+    const mechanism = new ExactPermitTronClientMechanism(signer);
 
     // 4. Initialize Core Client
     const client = new X402Client();
