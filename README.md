@@ -39,7 +39,7 @@ Currently available:
 
 Tell your AI Agent:
 ```
-Please read skills/sunswap/SKILL.md and help me check how much TRX I can get for 100 USDT
+Please read sunswap/SKILL.md and help me check how much TRX I can get for 100 USDT
 ```
 
 The AI Agent will:
@@ -73,15 +73,18 @@ skills-tron/
 └── x402-payment/     # x402 Payment Protocol skill
     ├── SKILL.md           # Main instruction file
     └── dist/              # Compiled tool scripts
+├── x402-payment-demo/     # x402 Payment Demo skill
+    └── SKILL.md           # Main instruction file
 ```
 
 ---
 
 ## Available Skills
 
- **[SunSwap Skills](sunswap/README.md)**: DEX Trading (TRON token swaps)
+- **[SunSwap Skills](sunswap/README.md)**: DEX Trading (TRON token swaps)
 - **[TRC-8004 Trustless Agents](8004-skill/README.md)**: On-chain identity, reputation, and validation for AI agents
 - **[x402-payment](x402-payment/SKILL.md)**: TRC20 Payments for AI Agents (USDT/USDD)
+- **[x402-payment-demo](x402-payment-demo/SKILL.md)**: Demo of x402 payment protocol (Protected Content Acquisition)
 
 ## How to Use Skills
 
@@ -167,7 +170,7 @@ dependencies:
 
 **A**: Tell it explicitly:
 ```
-Please read skills/sunswap/SKILL.md
+Please read sunswap/SKILL.md
 ```
 
 ### Q: Can I modify skills?
@@ -197,5 +200,5 @@ MIT License - see [LICENSE](LICENSE) file for details
 ---
 
 **Repository**: [bankofai/skills-tron](https://github.com/bankofai/skills-tron)  
-**Last Updated**: 2026-02-09  
+**Last Updated**: 2026-02-11  
 **Maintainer**: Bank of AI Team
