@@ -8561,6 +8561,11 @@ async function estimateContractGas(client, parameters) {
 //# sourceMappingURL=estimateContractGas.js.map
 ;// CONCATENATED MODULE: ./node_modules/viem/_esm/actions/public/getBalance.js
 
+
+
+
+
+
 /**
  * Returns the balance of an address in wei.
  *
@@ -8597,6 +8602,26 @@ async function estimateContractGas(client, parameters) {
  * // 10000000000000000000000n (wei)
  */
 async function getBalance(client, { address, blockNumber, blockTag = client.experimental_blockTag ?? 'latest', }) {
+    if (client.batch?.multicall && client.chain?.contracts?.multicall3) {
+        const multicall3Address = client.chain.contracts.multicall3.address;
+        const calldata = (0,encodeFunctionData/* encodeFunctionData */.p)({
+            abi: abis/* multicall3Abi */.v2,
+            functionName: 'getEthBalance',
+            args: [address],
+        });
+        const { data } = await getAction(client, call/* call */.T, 'call')({
+            to: multicall3Address,
+            data: calldata,
+            blockNumber,
+            blockTag,
+        });
+        return (0,decodeFunctionResult/* decodeFunctionResult */.e)({
+            abi: abis/* multicall3Abi */.v2,
+            functionName: 'getEthBalance',
+            args: [address],
+            data: data || '0x',
+        });
+    }
     const blockNumberHex = typeof blockNumber === 'bigint' ? (0,toHex/* numberToHex */.cK)(blockNumber) : undefined;
     const balance = await client.request({
         method: 'eth_getBalance',
@@ -11299,6 +11324,7 @@ class SizeExceedsPaddingSizeError extends Errors/* BaseError */.C {
 
 
 
+
 /**
  * Calculates the [Keccak256](https://en.wikipedia.org/wiki/SHA-3) hash of a {@link ox#Bytes.Bytes} or {@link ox#Hex.Hex} value.
  *
@@ -11342,6 +11368,41 @@ function Hash_keccak256(value, options = {}) {
     if (as === 'Bytes')
         return bytes;
     return core_Hex/* fromBytes */.uK(bytes);
+}
+/**
+ * Calculates the [HMAC-SHA256](https://en.wikipedia.org/wiki/HMAC) of a {@link ox#Bytes.Bytes} or {@link ox#Hex.Hex} value.
+ *
+ * This function is a re-export of `hmac` from [`@noble/hashes`](https://github.com/paulmillr/noble-hashes), an audited & minimal JS hashing library.
+ *
+ * @example
+ * ```ts twoslash
+ * import { Hash, Hex } from 'ox'
+ *
+ * Hash.hmac256(Hex.fromString('key'), '0xdeadbeef')
+ * // @log: '0x...'
+ * ```
+ *
+ * @example
+ * ### Configure Return Type
+ *
+ * ```ts twoslash
+ * import { Hash, Hex } from 'ox'
+ *
+ * Hash.hmac256(Hex.fromString('key'), '0xdeadbeef', { as: 'Bytes' })
+ * // @log: Uint8Array [...]
+ * ```
+ *
+ * @param key - {@link ox#Bytes.Bytes} or {@link ox#Hex.Hex} key.
+ * @param value - {@link ox#Bytes.Bytes} or {@link ox#Hex.Hex} value.
+ * @param options - Options.
+ * @returns HMAC-SHA256 hash.
+ */
+function hmac256(key, value, options = {}) {
+    const { as = typeof value === 'string' ? 'Hex' : 'Bytes' } = options;
+    const bytes = hmac(noble_sha256, Bytes.from(key), Bytes.from(value));
+    if (as === 'Bytes')
+        return bytes;
+    return Hex.fromBytes(bytes);
 }
 /**
  * Calculates the [Ripemd160](https://en.wikipedia.org/wiki/RIPEMD) hash of a {@link ox#Bytes.Bytes} or {@link ox#Hex.Hex} value.
@@ -21020,6 +21081,23 @@ const multicall3Abi = [
         type: 'function',
     },
     {
+        inputs: [
+            {
+                name: 'addr',
+                type: 'address',
+            },
+        ],
+        name: 'getEthBalance',
+        outputs: [
+            {
+                name: 'balance',
+                type: 'uint256',
+            },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
         inputs: [],
         name: 'getCurrentBlockTimestamp',
         outputs: [
@@ -23523,7 +23601,7 @@ __webpack_require__.d(__webpack_exports__, {
 // UNUSED EXPORTS: setErrorConfig
 
 ;// CONCATENATED MODULE: ./node_modules/viem/_esm/errors/version.js
-const version = '2.45.2';
+const version = '2.45.3';
 //# sourceMappingURL=version.js.map
 ;// CONCATENATED MODULE: ./node_modules/viem/_esm/errors/base.js
 

@@ -1,24 +1,25 @@
 ---
 name: x402-payment-demo
-description: "Demo of x402 payment protocol by fetching a protected image. Triggers: 'demo x402-payment'"
-version: 1.0.2
+description: "Demo of x402 payment protocol by fetching a protected image on TRON or BSC. Triggers: 'demo x402-payment'"
+version: 1.1.0
 author: bankofai
 metadata: {"clawdbot":{"emoji":"🖼️","triggers":["demo x402-payment", "show me x402 demo"]}}
-tags: [x402, demo, payment, tron, image]
+tags: [x402, demo, payment, tron, bsc, image]
 arguments:
   network:
-    description: "TRON network to use (nile, shasta, mainnet). Default: nile"
+    description: "Network to use (nile, shasta, mainnet, bsc-mainnet, bsc-testnet). Default: nile"
     required: false
 ---
 
 # x402 Payment Demo Skill
 
-This skill demonstrates the x402 payment protocol on the TRON network.
+This skill demonstrates the x402 payment protocol on the TRON and BSC networks.
 
 ## Usage
 
 Simply tell the Agent:
 - "demo x402-payment"
+- "demo x402-payment on bsc-testnet"
 
 ## Workflow
 
@@ -26,5 +27,7 @@ Simply tell the Agent:
     - **Tron Nile (Default)**: `https://x402-tron-demo.bankofai.io/protected-nile`
     - **Tron Shasta**: `https://x402-tron-demo.bankofai.io/protected-shasta`
     - **Tron Mainnet**: `https://x402-tron-demo.bankofai.io/protected-mainnet`
+    - **BSC Mainnet**: `https://x402-tron-demo.bankofai.io/protected-bsc-mainnet`
+    - **BSC Testnet**: `https://x402-tron-demo.bankofai.io/protected-bsc-testnet`
 2.  **Handle Payment**: Perform the payment and resource acquisition automatically as guided by the protocol (handling 402 Payment Required, signing permits, etc.).
 3.  **Display & Cleanup**: Once the image is retrieved, present / send it to the user. Immediately delete the local temporary file after the image has been displayed.

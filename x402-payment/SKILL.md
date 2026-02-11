@@ -1,7 +1,7 @@
 ---
 name: x402-payment
 description: "Pay for x402-enabled Agent endpoints using ERC20 tokens (USDT/USDC) on EVM or TRC20 tokens (USDT/USDD) on TRON."
-version: 1.2.0
+version: 1.3.0
 author: bankofai
 homepage: https://x402.org
 tags: [crypto, payments, x402, agents, api, usdt, usdd, usdc, tron, ethereum, evm, erc20, trc20]
@@ -35,7 +35,7 @@ node x402-payment/dist/x402_invoke.js --check
 ### 2. Invoking an Agent (v2)
 Most modern x402 agents use the v2 "invoke" pattern:
 ```bash
-node x402_payment/dist/x402_invoke.js \
+node x402-payment/dist/x402_invoke.js \
   --url https://api.example.com \
   --entrypoint chat \
   --input '{"prompt": "Your query here"}' \
@@ -44,21 +44,14 @@ node x402_payment/dist/x402_invoke.js \
 
 ### 3. Cross-Chain Support
 - **TRON (TRC20)**: Use `--network nile` (testnet) or `mainnet`.
-- **EVM (ERC20)**: Use `--network sepolia` (testnet), `ethereum`, `polygon`, `base`, etc.
+- **BSC (ERC20)**: Use `--network bsc-testnet` (testnet) or `bsc` (mainnet).
 
 ## Supported Networks & Tokens
 
 | Chain | Network Name | Common Tokens |
 |-------|--------------|---------------|
 | **TRON** | `mainnet`, `nile` | USDT, USDD |
-| **Ethereum** | `ethereum`, `sepolia` | USDT, USDC |
-| **Polygon** | `polygon`, `amoy` | USDT, USDC |
-| **Base** | `base`, `base-sepolia` | USDC |
-
-## Examples
-
-- **[TRC20 Payment on TRON Nile](examples/trc20_payment.md)**
-- **[ERC20 Payment on Sepolia](examples/erc20_payment.md)**
+| **BSC** | `bsc`, `bsc-testnet` | USDT, USDC, DHLU |
 
 ## Security Considerations
 
