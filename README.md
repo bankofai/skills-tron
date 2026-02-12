@@ -3,7 +3,7 @@
 AI Agent Skills Library - Reusable capability modules for AI agents
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub](https://img.shields.io/badge/GitHub-bankofai%2Fskills--tron-blue)](https://github.com/bankofai/skills-tron)
+[![GitHub](https://img.shields.io/badge/GitHub-bankofai%2Fskills-blue)](https://github.com/bankofai/skills)
 
 ## What is a Skill?
 
@@ -31,7 +31,7 @@ Completes DEX trade
 
 Currently available:
 - **sunswap/** - SunSwap DEX trading skill for TRON token swaps
-- **8004-skill/** - TRC-8004 Trustless Agents - On-chain identity and reputation for AI agents
+- **8004-skill/** - ERC-8004 Trustless Agents - On-chain identity and reputation for AI agents (TRON implementation: TRC-8004)
 - **x402-payment/** - Enables agent payments on TRON network (x402 protocol)
 - **x402-payment-demo/** - Demo of x402 payment protocol
 
@@ -52,7 +52,7 @@ The AI Agent will:
 ## Repository Structure
 
 ```
-skills-tron/
+skills/
 ├── README.md              # This file - Overview
 ├── LICENSE                # MIT License
 ├── CONTRIBUTING.md        # Contribution guidelines
@@ -63,7 +63,7 @@ skills-tron/
 │   ├── examples/          # Usage examples
 │   ├── resources/         # Configuration files (contract addresses, token lists, etc.)
 │   └── scripts/           # Helper scripts
-├── 8004-skill/             # TRC-8004 Trustless Agents skill
+├── 8004-skill/             # ERC-8004 Trustless Agents skill
 │   ├── README.md          # Skill description
 │   ├── SKILL.md           # Main instruction file
 │   ├── lib/               # Contract ABIs and configurations
@@ -82,18 +82,31 @@ skills-tron/
 ## Available Skills
 
 - **[SunSwap Skills](sunswap/README.md)**: DEX Trading (TRON token swaps)
-- **[TRC-8004 Trustless Agents](8004-skill/README.md)**: On-chain identity, reputation, and validation for AI agents
+- **[ERC-8004 Trustless Agents](8004-skill/README.md)**: On-chain identity, reputation, and validation for AI agents (supports TRON & BSC)
 - **[x402-payment](x402-payment/SKILL.md)**: TRC20 Payments for AI Agents (USDT/USDD)
 - **[x402-payment-demo](x402-payment-demo/SKILL.md)**: Demo of x402 payment protocol (Protected Content Acquisition)
 
 ## How to Use Skills
 
-### Prerequisites
+### Compatible AI Agents
 
-1. ✅ Installed AI Agent (OpenClaw)
-2. ✅ Installed **OpenClaw Extension** (for TRON capabilities)
+These Skills can be used with various AI agent platforms that support MCP (Model Context Protocol), including:
+- **ClawdCode** - AI coding assistant
+- **OpenCode** - Open-source AI development environment
+- **OpenClaw** - AI agent framework
+- And other MCP-compatible AI agents
+
+### Installation Example (Using OpenClaw)
+
+1. ✅ Install AI Agent (e.g., OpenClaw)
+2. ✅ Install **OpenClaw Extension** (for TRON capabilities)
    - Download: [bankofai/openclaw-extension](https://github.com/bankofai/openclaw-extension)
-   - Follow instructions in that repository to set up the MCP server.
+   - Follow instructions in that repository to set up the MCP server
+3. ✅ Clone this Skills repository to your local machine:
+   ```bash
+   git clone https://github.com/bankofai/skills.git
+   ```
+4. ✅ Point your AI agent to the Skills directory or reference specific SKILL.md files when needed
 
 ---
 
@@ -199,6 +212,6 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ---
 
-**Repository**: [bankofai/skills-tron](https://github.com/bankofai/skills-tron)  
+**Repository**: [bankofai/skills](https://github.com/bankofai/skills)  
 **Last Updated**: 2026-02-11  
 **Maintainer**: Bank of AI Team
