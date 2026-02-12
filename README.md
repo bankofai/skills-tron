@@ -63,7 +63,7 @@ skills/
 │   ├── examples/          # Usage examples
 │   ├── resources/         # Configuration files (contract addresses, token lists, etc.)
 │   └── scripts/           # Helper scripts
-├── 8004-skill/            # ERC-8004 Trustless Agents skill
+├── 8004-skill/            # 8004 Trustless Agents skill
 │   ├── README.md          # Skill description
 │   ├── SKILL.md           # Main instruction file
 │   ├── lib/               # Contract ABIs and configurations
@@ -99,10 +99,19 @@ These Skills can be used with various AI agent platforms that support MCP (Model
 ### Installation Example (Using OpenClaw)
 
 1. ✅ Install AI Agent (e.g., OpenClaw)
-2. ✅ Install **OpenClaw Extension**
+2. ✅ Install **OpenClaw Extension** (includes MCP servers and skills)
    ```bash
    curl -fsSL https://raw.githubusercontent.com/bankofai/openclaw-extension/refs/heads/main/install.sh | bash
    ```
+
+That's it! The installer will set up everything you need.
+
+### For Other AI Agent Platforms
+
+If you're using other MCP-compatible AI agents (ClawdCode, OpenCode, etc.):
+
+1. ✅ Install your AI Agent
+2. ✅ Configure MCP servers manually (see respective MCP server documentation)
 3. ✅ Clone this Skills repository to your local machine:
    ```bash
    git clone https://github.com/bankofai/skills.git
