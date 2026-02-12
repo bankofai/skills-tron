@@ -31,7 +31,7 @@ Completes DEX trade
 
 Currently available:
 - **sunswap/** - SunSwap DEX trading skill for TRON token swaps
-- **8004-skill/** - ERC-8004 Trustless Agents - On-chain identity and reputation for AI agents (TRON implementation: TRC-8004)
+- **8004-skill/** - 8004 Trustless Agents (ERC-8004 / TRC-8004)
 - **x402-payment/** - Enables agent payments on TRON network (x402 protocol)
 - **x402-payment-demo/** - Demo of x402 payment protocol
 
@@ -63,17 +63,17 @@ skills/
 │   ├── examples/          # Usage examples
 │   ├── resources/         # Configuration files (contract addresses, token lists, etc.)
 │   └── scripts/           # Helper scripts
-├── 8004-skill/             # ERC-8004 Trustless Agents skill
+├── 8004-skill/            # ERC-8004 Trustless Agents skill
 │   ├── README.md          # Skill description
 │   ├── SKILL.md           # Main instruction file
 │   ├── lib/               # Contract ABIs and configurations
 │   ├── scripts/           # Node.js scripts for agent operations
 │   ├── templates/         # Registration templates
 │   └── examples/          # Usage examples
-└── x402-payment/     # x402 Payment Protocol skill
-    ├── SKILL.md           # Main instruction file
-    └── dist/              # Compiled tool scripts
-├── x402-payment-demo/     # x402 Payment Demo skill
+├── x402-payment/          # x402 Payment Protocol skill
+│   ├── SKILL.md           # Main instruction file
+│   └── dist/              # Compiled tool scripts
+└── x402-payment-demo/     # x402 Payment Demo skill
     └── SKILL.md           # Main instruction file
 ```
 
@@ -99,9 +99,10 @@ These Skills can be used with various AI agent platforms that support MCP (Model
 ### Installation Example (Using OpenClaw)
 
 1. ✅ Install AI Agent (e.g., OpenClaw)
-2. ✅ Install **OpenClaw Extension** (for TRON capabilities)
-   - Download: [bankofai/openclaw-extension](https://github.com/bankofai/openclaw-extension)
-   - Follow instructions in that repository to set up the MCP server
+2. ✅ Install **OpenClaw Extension**
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/bankofai/openclaw-extension/refs/heads/main/install.sh | bash
+   ```
 3. ✅ Clone this Skills repository to your local machine:
    ```bash
    git clone https://github.com/bankofai/skills.git
@@ -204,6 +205,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 - **[AGENTS.md](AGENTS.md)** - Skill development guide
 - **[OpenClaw Extension](https://github.com/bankofai/openclaw-extension)** - TRON MCP Server & Tools
+
 ---
 
 ## License
