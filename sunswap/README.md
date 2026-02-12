@@ -9,11 +9,17 @@ Execute token swaps on SunSwap DEX using Smart Router for optimal routing across
 
 **Instructions**: Read [SKILL.md](SKILL.md) for complete usage instructions.
 
+## Approach
+
+This skill uses **script-based execution** instead of direct MCP tool calls. Scripts handle complex parameter formatting, ABI management, and multi-step workflows, reducing AI errors and ensuring reliable execution.
+
 ## Files
 
 - **[SKILL.md](SKILL.md)** - Complete skill documentation
-- **[examples/swap_usdt_to_trx.md](examples/swap_usdt_to_trx.md)** - Full swap example
-- **[resources/sunswap_contracts.json](resources/sunswap_contracts.json)** - Contract addresses, API endpoints, ABIs
+- **[scripts/balance.js](scripts/balance.js)** - Check token balances
+- **[scripts/quote.js](scripts/quote.js)** - Get price quotes
+- **[scripts/swap.js](scripts/swap.js)** - Execute swaps (with flexible workflow options)
+- **[resources/sunswap_contracts.json](resources/sunswap_contracts.json)** - Contract addresses and API endpoints
 - **[resources/common_tokens.json](resources/common_tokens.json)** - Token addresses and decimals
 
 ## Networks
@@ -23,30 +29,54 @@ Execute token swaps on SunSwap DEX using Smart Router for optimal routing across
 | **Mainnet** | `TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax` | `https://rot.endjgfsv.link/swap/router` |
 | **Nile** | `TMEkn7zwGJvJsRoEkiTKfGRGZS2yMdVmu3` | `https://tnrouter.endjgfsv.link/swap/router` |
 
-## Critical Notes
+## Installation
 
-> [!WARNING]
-> **Version Merging**: Merge consecutive identical pool versions (e.g., `["v2", "v2"]` -> `["v2"]`).
-> **Token Count**: `versionLen` must sum to `path.length` (token count).
-> **Fee Length**: `fees` length must strictly equal `path.length` (do not truncate!).
-
-```javascript
-// ✅ Correct Logic:
-const poolVersion = mergeConsecutive(response.poolVersions);
-const versionLen = calculateTokenCounts(response.poolVersions);
-const fees = response.poolFees.map(f => parseInt(f)); // Full length
+```bash
+cd skills/sunswap
+npm install
 ```
 
-> [!NOTE]
-> **Nile Testnet**: Always provide `abi` parameter when calling contracts on Nile.
+## Usage Examples
+
+### Check Balance
+```bash
+node scripts/balance.js USDT nile
+```
+
+### Get Quote
+```bash
+node scripts/quote.js TRX USDT 100 nile
+```
+
+### Execute Swap (Full Workflow)
+```bash
+node scripts/swap.js TRX USDT 100 nile --execute
+```
+
+### Execute Swap (Step-by-Step)
+```bash
+# 1. Check only (balance + allowance)
+node scripts/swap.js TRX USDT 100 nile --check-only
+
+# 2. Approve only (if needed)
+node scripts/swap.js TRX USDT 100 nile --approve-only
+
+# 3. Swap only (assumes already approved)
+node scripts/swap.js TRX USDT 100 nile --swap-only
+```
 
 ## Dependencies
 
+- Node.js 14+
+- tronweb
+- axios
 - [OpenClaw Extension](https://github.com/bankofai/openclaw-extension)
 
 ## Version
 
-1.0.0 (2026-02-09)
+2.0.0 (2026-02-13) - Script-based approach
+
+See [CHANGELOG.md](CHANGELOG.md) for migration notes.
 
 ## License
 

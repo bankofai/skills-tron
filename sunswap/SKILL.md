@@ -1,9 +1,10 @@
 ---
 name: SunSwap DEX Trading
-description: Execute token swaps on SunSwap DEX for TRON blockchain.
-version: 1.0.0
+description: Execute token swaps on SunSwap DEX for TRON blockchain using automated scripts.
+version: 2.0.0
 dependencies:
-  - mcp-server-tron
+  - node >= 18.0.0
+  - tronweb
 tags:
   - defi
   - dex
@@ -14,236 +15,428 @@ tags:
 
 # SunSwap DEX Trading Skill
 
-## 🚨 STOP! READ THIS FIRST - DO NOT SKIP!
+## 🚀 Quick Start
 
-**Before attempting any swap, read the Quick Reference Card below.**
+This skill provides automated scripts for token swaps on SunSwap DEX. No complex MCP calls needed!
 
-**The ONLY correct workflow is documented below. Follow it exactly.**
+### Prerequisites
 
----
+1. **Install dependencies** (first time only):
+   ```bash
+   cd ~/.openclaw/skills/sunswap
+   npm install
+   ```
 
-## 🔴 CRITICAL: RESPECT USER'S EXACT TOKEN CHOICE
-
-**🚨 ABSOLUTE RULE: User says what token, you use EXACTLY that token!**
-
-**User says "TRX"** → `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb` (native, same on all networks)
-**NEVER substitute tokens!** See [INTENT_LOCK.md](INTENT_LOCK.md) for details.
-
-**Key Differences:**
-
-| Feature | TRX (Native) | WTRX (Wrapped) |
-|---------|--------------|----------------|
-| Type | Native token | TRC20 token |
-| Approval | ❌ Not needed | ✅ Required |
-| Transaction | Via `value` parameter | Standard TRC20 transfer |
-| Address | Same on all networks | Network-specific |
+2. **Set environment variables**:
+   ```bash
+   export TRON_PRIVATE_KEY="your_private_key_here"
+   export TRONGRID_API_KEY="your_api_key_here"  # Optional, for mainnet
+   ```
 
 ---
 
-## 🚀 Quick Reference Card
+## 📋 Available Scripts
 
-### ⚠️ CRITICAL STEPS CHECKLIST
+### 1. Check Balance
+```bash
+node scripts/balance.js [TOKEN] [--network nile|mainnet]
+```
 
-| Step | Action | Required? | Skip Condition |
-|------|--------|-----------|----------------|
-| 1️⃣ | **Get Price Quote** | ✅ ALWAYS | Never skip |
-| 2️⃣ | **Check Balance** | ✅ ALWAYS | Never skip |
-| 3️⃣ | **Check Allowance** | ✅ For TRC20 only | Skip if input is native TRX |
-| 4️⃣ | **Approve Token** | ⚠️ CONDITIONAL | Skip if: (1) input is TRX OR (2) allowance >= amountIn |
-| 5️⃣ | **Execute Swap** | ✅ ALWAYS | Never skip |
+**Examples:**
+```bash
+# Check all token balances
+node scripts/balance.js
 
-**🔴 MOST COMMON MISTAKE: Forgetting to approve TRC20 tokens before swap**
+# Check specific token
+node scripts/balance.js TRX
+node scripts/balance.js USDT --network mainnet
+```
+
+**Output:** JSON with wallet address and token balances
 
 ---
 
-### API Price Quote Format
+### 2. Get Price Quote
+```bash
+node scripts/quote.js <FROM> <TO> <AMOUNT> [--network nile|mainnet]
+```
 
-**🚨 Use EXACTLY the token addresses that match user's specified tokens!**
+**Examples:**
+```bash
+# Get quote for TRX → USDT
+node scripts/quote.js TRX USDT 100
+
+# Get quote for USDT → TRX on mainnet
+node scripts/quote.js USDT TRX 50 --network mainnet
+```
+
+**Output:** JSON with price, route, and price impact
+
+---
+
+### 3. Execute Swap (Flexible Workflow)
+```bash
+node scripts/swap.js <FROM> <TO> <AMOUNT> [OPTIONS]
+```
+
+**Options:**
+- `--network <nile|mainnet>` - Network to use (default: nile)
+- `--slippage <0.5>` - Slippage tolerance in % (default: 0.5)
+- `--recipient <address>` - Recipient address (default: your wallet)
+- `--execute` - Execute the swap (without this, dry-run only)
+- `--check-only` - Only check balance and allowance
+- `--approve-only` - Only approve token (if needed)
+- `--swap-only` - Only execute swap (assumes already approved)
+
+**Examples:**
 
 ```bash
-curl 'https://tnrouter.endjgfsv.link/swap/router?fromToken=<FROM_ADDRESS>&toToken=<TO_ADDRESS>&amountIn=<RAW_AMOUNT>&typeList=PSM,CURVE,CURVE_COMBINATION,WTRX,SUNSWAP_V1,SUNSWAP_V2,SUNSWAP_V3'
-```
+# 🔍 Dry run (check everything, show what would happen)
+node scripts/swap.js TRX USDT 100
 
-**Parameters:**
-- `fromToken`: Input token address (user's exact token choice)
-- `toToken`: Output token address (user's exact token choice)
-- `amountIn`: Raw integer amount (e.g., `1000000` for 1 TRX with 6 decimals)
-- `typeList`: Always use the full list shown above
+# ✅ Execute full workflow (check → approve if needed → swap)
+node scripts/swap.js TRX USDT 100 --execute
+
+# 📊 Check balance and allowance only
+node scripts/swap.js USDT TRX 50 --check-only
+
+# 📝 Approve only (if needed)
+node scripts/swap.js USDT TRX 50 --approve-only --execute
+
+# 🔄 Swap only (assumes already approved)
+node scripts/swap.js USDT TRX 50 --swap-only --execute
+
+# 🎯 Custom slippage and network
+node scripts/swap.js TRX USDT 100 --execute --slippage 1.0 --network mainnet
+```
 
 ---
 
-### Complete Workflow
+## 🎯 Usage Patterns
+
+### Pattern 1: Quick Execution (One Command)
+
+**Best for:** Automated workflows, trusted operations
 
 ```bash
-# Step 1: Get Price Quote (✅ ALWAYS)
-curl 'https://tnrouter.endjgfsv.link/swap/router?fromToken=<FROM>&toToken=<TO>&amountIn=<AMOUNT>&typeList=...'
+# Execute everything in one command
+node scripts/swap.js TRX USDT 100 --execute
+```
 
-# Step 2: Check Balance (✅ ALWAYS)
-# Use mcp_mcp_server_tron_get_balance and read_contract (balanceOf)
+The script automatically:
+1. ✅ Checks balance
+2. ✅ Checks allowance  
+3. ✅ Gets latest price quote
+4. ✅ Approves if needed
+5. ✅ Executes swap
 
-# Step 3: Check Allowance (✅ For TRC20, ❌ Skip for TRX)
-# Use read_contract with allowance function
+**Pros:** Fast, one command
+**Cons:** User doesn't see quote before execution
 
-# Step 4: Approve Token (⚠️ Only if allowance < amountIn)
-# mcp_mcp_server_tron_write_contract (approve function)
-# RULE: approve MaxUint160 (infinite) unless user explicitly requests exact amount.
-# Reason: Gas optimization. Frequent approvals are expensive.
-# Wait for confirmation before proceeding!
+---
 
-# Step 5: Convert Parameters (✅ ALWAYS)
-node scripts/format_swap_params.js '<quote_json>' '<recipient>' '<network>' [slippage]
+### Pattern 2: Two-Step Confirmation (Recommended for AI Agents)
 
-# Step 6: Execute Swap (✅ ALWAYS)
-mcp_mcp_server_tron_write_contract({...output_from_step_5...})
+**Best for:** User-facing operations, large amounts
+
+**Step 1: Show quote to user**
+```bash
+node scripts/quote.js TRX USDT 100
+```
+
+Output:
+```
+Quote: 100 TRX → 15.234 USDT
+Price Impact: 0.12%
+Route: TRX → WTRX → USDT
+```
+
+**Step 2: Execute after user confirms**
+```bash
+node scripts/swap.js TRX USDT 100 --execute
+```
+
+**Why quote twice?**
+- First quote: For user decision
+- Second quote (inside swap): Gets latest price before execution
+- Prices change! This protects against slippage
+
+**Pros:** User sees price before committing
+**Cons:** Two commands
+
+---
+
+### Pattern 3: Step-by-Step (Advanced)
+
+**Best for:** Debugging, manual control
+
+```bash
+# 1. Check balance
+node scripts/balance.js
+
+# 2. Get quote
+node scripts/quote.js USDT TRX 50
+
+# 3. Check if approval needed
+node scripts/swap.js USDT TRX 50 --check-only
+
+# 4. Approve if needed
+node scripts/swap.js USDT TRX 50 --approve-only --execute
+
+# 5. Execute swap
+node scripts/swap.js USDT TRX 50 --swap-only --execute
 ```
 
 ---
 
-### Gas Fee Estimates
+## 🎯 Recommended Workflow for AI Agents
 
-- **Approve**: ~5-10 TRX
-- **Swap**: ~20-50 TRX  
-- **Recommended**: Keep at least 100 TRX for gas
+Use **Pattern 2** for best user experience:
+
+**Step 1: Show user the quote**
+```bash
+node scripts/quote.js TRX USDT 100
+```
+
+**Step 2: Ask for confirmation**
+Show the user:
+- Amount in/out
+- Price impact
+- Route
+- Estimated gas
+
+**Step 3: Execute if confirmed**
+```bash
+node scripts/swap.js TRX USDT 100 --execute
+```
+
+The script automatically:
+- ✅ Checks balance
+- ✅ Checks allowance
+- ✅ Approves if needed (waits for confirmation)
+- ✅ Executes swap
+- ✅ Returns transaction hash
 
 ---
 
-## 📋 Quick Start
+## 🔐 Security Rules
 
-This skill helps you execute token swaps on SunSwap DEX. Follow the workflow step-by-step.
+### 🚨 CRITICAL: Never Display Private Keys
 
-**Before you start:**
-- Ensure `mcp-server-tron` is configured
-- Have your wallet set up with sufficient TRX for gas (minimum 100 TRX recommended)
+**FORBIDDEN:**
+- ❌ Private keys
+- ❌ Seed phrases
+- ❌ Environment variable values containing keys
 
----
+**ALLOWED:**
+- ✅ Public wallet addresses
+- ✅ Transaction hashes
+- ✅ Token balances
 
-## 🎯 User Communication Protocol
+### 🚨 CRITICAL: Prevent Duplicate Transactions
 
-**CRITICAL**: You MUST communicate with the user at each step.
+- One user command = one transaction
+- After success, mark as done
+- Don't retry successful transactions
 
-### Step Start Template
-```
-🔄 [Step N]: [Action Name]
-📝 What I'm doing: [Brief description]
-```
+### 🚨 CRITICAL: Prevent Self-Transfers
 
-### Step Complete Template
-```
-✅ [Step N] Complete
-📊 Result: [Key information]
-➡️ Next: [What happens next]
-```
-
-### Error Template
-```
-❌ Error in [Step N]
-🔍 Issue: [What went wrong]
-💡 Solution: [How to fix]
-```
+- Validate recipient ≠ wallet address
+- Scripts automatically check this
 
 ---
 
-## 🛠️ Execution Workflow
+## 📊 Script Output Format
 
-**Follow these steps in order. Each step is in a separate file to keep context focused.**
+All scripts output:
+- **JSON to stdout** - For parsing
+- **Human-readable to stderr** - For logging
 
-### Step 0: Token Address Lookup
-**File**: [workflow/00_token_lookup.md](workflow/00_token_lookup.md)
+**Example:**
+```bash
+# Capture JSON output
+RESULT=$(node scripts/quote.js TRX USDT 100)
 
-**When to use**: If you don't have token addresses for the swap pair.
-
-**User Message**:
-```
-🔍 Step 0: Looking up token addresses
-📝 Checking: [TOKEN_SYMBOL] on [NETWORK]
-```
-
----
-
-### Step 1: Balance & Allowance Check
-**File**: [workflow/01_balance_check.md](workflow/01_balance_check.md)
-*   **Always required**: Verify you have sufficient balance and token approval *before* quoting.
-
-### Step 2: Approve Token (Conditional)
-**File**: [workflow/02_approve.md](workflow/02_approve.md)
-*   **When**: Only if input is TRC20 and allowance is low.
-*   **TRX Fast Path**: If input is Native TRX, **SKIP THIS STEP**.
-
-### Step 3: Price Quote
-**File**: [workflow/03_price_quote.md](workflow/03_price_quote.md)
-*   **Always required**: Get the best swap route immediately before execution to ensure freshness.
-
-**User Message**:
-```
-✅ Step 3: Approving token
-📝 Approving: [TOKEN] for SunSwap Router
-⏳ Please wait for confirmation...
+# Parse with jq
+echo $RESULT | jq '.amountOut'
 ```
 
 ---
 
-### Step 4: Execute Swap
-**File**: [workflow/04_execute_swap.md](workflow/04_execute_swap.md)
-*   **When**: Always, after checks pass.
-*   **Action**: Submit swap transaction using **EXACT** JSON from Step 5 script.
-*   **Warning**: Do not manually modify the JSON parameters.
+## 🛠 Supported Tokens
 
-**User Message**:
+Check `resources/common_tokens.json` for available tokens on each network.
+
+**Common tokens:**
+- **TRX** - Native TRON token (no approval needed)
+- **USDT** - Tether USD
+- **USDC** - USD Coin
+- **USDD** - Decentralized USD
+- **WTRX** - Wrapped TRX
+
+---
+
+## ⚠️ Common Issues
+
+### "TRON_PRIVATE_KEY not set"
+```bash
+export TRON_PRIVATE_KEY="your_64_character_hex_key"
 ```
-🔄 Step 4: Executing swap
-📝 Swapping: [AMOUNT_IN] [TOKEN_IN] → [EXPECTED_OUT] [TOKEN_OUT]
-⏳ Submitting transaction...
+
+### "Insufficient balance"
+Check balance first:
+```bash
+node scripts/balance.js
+```
+
+Ensure you have:
+- Enough tokens for the swap
+- At least 100 TRX for gas fees
+
+### "Insufficient allowance"
+The swap script handles this automatically with `--execute`.
+
+Or approve manually:
+```bash
+node scripts/swap.js USDT TRX 50 --approve-only --execute
+```
+
+### "Module not found"
+Install dependencies:
+```bash
+cd ~/.openclaw/skills/sunswap
+npm install
 ```
 
 ---
 
-## �️ Technical Protocol & Tips
+## 🎓 User Communication Protocol
 
-### ⚠️ MCPorter Usage (CRITICAL)
-*   **No Parentheses**: `mcporter call tool_name` (CORRECT) vs `tool_name()` (WRONG - zsh error).
-*   **JSON Args**: Use `--args '{ "key": "value" }'` for complex inputs.
+When executing swaps, communicate clearly:
 
-### ⚡️ Execution Rules
+**Before execution:**
+```
+🔍 Getting quote for 100 TRX → USDT...
 
-- **Common Tokens List**: Consult [workflow/00_token_lookup.md](workflow/00_token_lookup.md) for available tokens.
-- **Contract Addresses**: [resources/sunswap_contracts.json](resources/sunswap_contracts.json)
-- **Parameter Formatter**: [scripts/format_swap_params.js](scripts/format_swap_params.js) - Converts API quote to MCP params
-- **Complete Examples**: [examples/](examples/) - Real working examples with full output
+Quote received:
+  100 TRX → 15.234 USDT
+  Price Impact: 0.12%
+  Route: TRX → WTRX → USDT
+  
+Proceed with swap? (yes/no)
+```
+
+**During execution:**
+```
+📊 Checking balances...
+   TRX: 250.5 ✅
+   
+🔐 Checking allowance... (skipped for TRX)
+
+💱 Getting final quote...
+
+🔄 Executing swap...
+   Transaction sent: abc123...
+   
+⏳ Waiting for confirmation...
+```
+
+**After success:**
+```
+✅ Swap completed!
+   Transaction: abc123def456...
+   Explorer: https://nile.tronscan.org/#/transaction/abc123def456...
+   
+   Swapped: 100 TRX → 15.234 USDT
+```
 
 ---
 
 ## 📖 Examples
 
-1. **[TRX → USDJ](examples/complete_swap_example.md)** - Native TRX swap (no approve needed)
-2. **[USDT → TRX](examples/swap_with_approve.md)** - TRC20 token swap (approve required)
+### Example 1: Simple TRX → USDT Swap
+
+```bash
+# User: "Swap 100 TRX to USDT"
+
+# Step 1: Get quote
+node scripts/quote.js TRX USDT 100
+
+# Step 2: Show user and ask confirmation
+# (User confirms)
+
+# Step 3: Execute
+node scripts/swap.js TRX USDT 100 --execute
+```
+
+### Example 2: USDT → TRX with Approval
+
+```bash
+# User: "Swap 50 USDT to TRX"
+
+# Step 1: Check if approval needed
+node scripts/swap.js USDT TRX 50 --check-only
+
+# Step 2: If needs approval, show quote and ask confirmation
+node scripts/quote.js USDT TRX 50
+
+# Step 3: Execute (auto-approves if needed)
+node scripts/swap.js USDT TRX 50 --execute
+```
+
+### Example 3: Advanced - Manual Steps
+
+```bash
+# Check balance first
+node scripts/balance.js
+
+# Get quote
+node scripts/quote.js TRX USDT 100
+
+# Check if ready
+node scripts/swap.js TRX USDT 100 --check-only
+
+# Approve if needed (for TRC20 tokens)
+node scripts/swap.js USDT TRX 50 --approve-only --execute
+
+# Execute swap
+node scripts/swap.js USDT TRX 50 --swap-only --execute
+```
 
 ---
 
-## 🚨 CRITICAL PROTOCOL
+## 🔗 Resources
 
-1.  **RESPECT USER CHOICE**: Use EXACTLY the token user specified. NEVER substitute tokens!
-2.  **CHECK FIRST**: Always check Balance (and Allowance for TRC20) before swapping.
-3.  **COMMUNICATE**: Announce every step ("🔄 Checking...", "✅ Approved", "❌ Error").
-4.  **USE TOOLS**: Use provided scripts for token lookup and parameter formatting.
-
-### ❌ Common Mistakes (DO NOT DO THIS)
-*   **Manual JSON**: NEVER construct complex JSON in shell. Use `format_swap_params.js` output.
-*   **Silent Execution**: NEVER run multiple steps without reporting progress.
-*   **Skipping Checks**: NEVER swap without verifying balance and allowance first (even for TRX).
-5. **Include ABI**: Always include ABI for Nile testnet
+- **Contract Addresses**: `resources/sunswap_contracts.json`
+- **Token List**: `resources/common_tokens.json`
+- **SunSwap Docs**: https://docs.sun.io/
 
 ---
 
-## 📖 Detailed Workflow Files
+## 🆘 Troubleshooting
 
-Each workflow step is in a separate file to keep context focused:
+### Script fails with "Cannot find module"
+```bash
+cd ~/.openclaw/skills/sunswap
+npm install
+```
 
-- `workflow/00_token_lookup.md` - Find token addresses
-- `workflow/01_balance_check.md` - Verify balance and allowance
-- `workflow/02_approve.md` - Approve token spending
-- `workflow/03_price_quote.md` - Get swap quote from API
-- `workflow/04_execute_swap.md` - Execute the swap
+### "Network error" or "Timeout"
+- Check internet connection
+- For mainnet, ensure `TRONGRID_API_KEY` is set
+- Try again (network might be congested)
 
-**Load only the file you need for the current step.**
+### Transaction fails
+- Check you have enough TRX for gas (100+ recommended)
+- Increase slippage: `--slippage 1.0`
+- Check token balance is sufficient
+
+### "Self-transfer detected"
+- Don't specify `--recipient` as your own wallet
+- Or omit `--recipient` to use your wallet (default)
 
 ---
+
+**Version**: 2.0.0 (Script-based)  
+**Last Updated**: 2026-02-13  
+**Maintainer**: Bank of AI Team
