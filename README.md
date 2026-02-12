@@ -99,7 +99,7 @@ These Skills can be used with various AI agent platforms that support MCP (Model
 ### Installation Example (Using OpenClaw)
 
 1. ✅ Install AI Agent (e.g., OpenClaw)
-2. ✅ Install **OpenClaw Extension** (includes MCP servers and skills)
+2. ✅ Install **OpenClaw Extension** 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/bankofai/openclaw-extension/refs/heads/main/install.sh | bash
    ```
