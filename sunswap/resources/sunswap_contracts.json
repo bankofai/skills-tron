@@ -1,7 +1,7 @@
 {
     "mainnet": {
         "smartRouter": {
-            "address": "TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax",
+            "address": "TGnC7LMji8hBpyvZt1TTEJhVpAZ5HFyJ3r",
             "name": "SunSwap Smart Router",
             "description": "Multi-version router supporting V1, V2, V3, PSM, and Curve pools",
             "apiEndpoint": "https://rot.endjgfsv.link/swap/router"

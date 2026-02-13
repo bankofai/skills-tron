@@ -26,7 +26,7 @@ This skill uses **script-based execution** instead of direct MCP tool calls. Scr
 
 | Network | Smart Router | API Endpoint |
 |---------|-------------|--------------|
-| **Mainnet** | `TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax` | `https://rot.endjgfsv.link/swap/router` |
+| **Mainnet** | `TGnC7LMji8hBpyvZt1TTEJhVpAZ5HFyJ3r` | `https://rot.endjgfsv.link/swap/router` |
 | **Nile** | `TMEkn7zwGJvJsRoEkiTKfGRGZS2yMdVmu3` | `https://tnrouter.endjgfsv.link/swap/router` |
 
 ## Installation
@@ -70,7 +70,6 @@ node scripts/swap.js TRX USDT 100 nile --swap-only
 - Node.js 14+
 - tronweb
 - axios
-- [OpenClaw Extension](https://github.com/bankofai/openclaw-extension)
 
 ## Version
 
@@ -80,4 +79,4 @@ See [CHANGELOG.md](CHANGELOG.md) for migration notes.
 
 ## License
 
-MIT - see [LICENSE](../LICENSE) for details
+MIT - see [LICENSE](../../LICENSE) for details

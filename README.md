@@ -31,7 +31,7 @@ Completes DEX trade
 
 Currently available:
 - **sunswap/** - SunSwap DEX trading skill for TRON token swaps
-- **8004-skill/** - 8004 Trustless Agents (ERC-8004 / TRC-8004)
+- **8004-skill/** - 8004 Trustless Agents (TRC-8004 / BSC implementation)
 - **x402-payment/** - Enables agent payments on TRON network (x402 protocol)
 - **x402-payment-demo/** - Demo of x402 payment protocol
 
@@ -82,7 +82,7 @@ skills/
 ## Available Skills
 
 - **[SunSwap Skills](sunswap/README.md)**: DEX Trading (TRON token swaps)
-- **[ERC-8004 Trustless Agents](8004-skill/README.md)**: On-chain identity, reputation, and validation for AI agents (supports TRON & BSC)
+- **[8004 Trustless Agents](8004-skill/README.md)**: On-chain identity, reputation, and validation for AI agents (supports TRON & BSC)
 - **[x402-payment](x402-payment/SKILL.md)**: TRC20 Payments for AI Agents (USDT/USDD)
 - **[x402-payment-demo](x402-payment-demo/SKILL.md)**: Demo of x402 payment protocol (Protected Content Acquisition)
 
