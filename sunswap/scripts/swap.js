@@ -6,6 +6,10 @@
  * Execute token swap with automatic approval handling
  * Usage: node swap.js <FROM> <TO> <AMOUNT> [OPTIONS]
  * 
+ * FROM/TO can be either:
+ *   - Token symbol (USDT, TRX, USDC, etc.)
+ *   - Token contract address (T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb)
+ * 
  * Options:
  *   --network <nile|mainnet>    Network to use (default: nile)
  *   --slippage <0.5>            Slippage tolerance in % (default: 0.5)
@@ -16,20 +20,17 @@
  *   --swap-only                 Only execute swap (assumes already approved)
  * 
  * Examples:
- *   # Dry run (check everything, show what would happen)
- *   node swap.js TRX USDT 100
- * 
- *   # Execute full workflow (check → approve if needed → swap)
+ *   # Using token symbols
  *   node swap.js TRX USDT 100 --execute
+ * 
+ *   # Using token addresses
+ *   node swap.js T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj 100 --execute
+ * 
+ *   # Mixed: symbol and address
+ *   node swap.js USDT TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj 50 --execute
  * 
  *   # Check balance and allowance only
  *   node swap.js USDT TRX 50 --check-only
- * 
- *   # Approve only (if needed)
- *   node swap.js USDT TRX 50 --approve-only --execute
- * 
- *   # Swap only (assumes already approved)
- *   node swap.js USDT TRX 50 --swap-only --execute
  */
 
 const { TronWeb } = require('tronweb');
@@ -123,6 +124,8 @@ function parseArgs() {
   if (args.length < 3) {
     console.error('Usage: node swap.js <FROM> <TO> <AMOUNT> [OPTIONS]');
     console.error('');
+    console.error('FROM/TO can be token symbol (USDT, TRX) or address (T9yD...)');
+    console.error('');
     console.error('Options:');
     console.error('  --network <nile|mainnet>    Network (default: nile)');
     console.error('  --slippage <0.5>            Slippage % (default: 0.5)');
@@ -134,8 +137,9 @@ function parseArgs() {
     process.exit(1);
   }
 
-  const fromSymbol = args[0].toUpperCase();
-  const toSymbol = args[1].toUpperCase();
+  // Don't convert to uppercase if it's an address (starts with T and length 34)
+  const fromSymbol = (args[0].startsWith('T') && args[0].length === 34) ? args[0] : args[0].toUpperCase();
+  const toSymbol = (args[1].startsWith('T') && args[1].length === 34) ? args[1] : args[1].toUpperCase();
   const amount = args[2];
   
   let network = 'nile';
@@ -167,15 +171,34 @@ function parseArgs() {
   return { fromSymbol, toSymbol, amount, network, slippage, recipient, execute, checkOnly, approveOnly, swapOnly };
 }
 
-function getTokenInfo(symbol, network) {
+function getTokenInfo(symbolOrAddress, network) {
   const networkTokens = tokens[network];
   if (!networkTokens) {
     throw new Error(`Unknown network: ${network}`);
   }
 
-  const token = networkTokens[symbol];
+  // Check if it's an address (starts with T and is 34 characters)
+  if (symbolOrAddress.startsWith('T') && symbolOrAddress.length === 34) {
+    // Check if it's an address - try to find it in the token list
+    for (const [key, token] of Object.entries(networkTokens)) {
+      if (token.address === symbolOrAddress) {
+        return token;
+      }
+    }
+    
+    // Address not found in list - return a generic token object
+    console.error(`⚠️  Token address ${symbolOrAddress} not in common list, using generic info`);
+    return {
+      symbol: 'UNKNOWN',
+      address: symbolOrAddress,
+      decimals: 6 // Default to 6 decimals
+    };
+  }
+
+  // It's a symbol
+  const token = networkTokens[symbolOrAddress];
   if (!token) {
-    throw new Error(`Unknown token: ${symbol} on ${network}`);
+    throw new Error(`Unknown token: ${symbolOrAddress} on ${network}`);
   }
 
   return token;
@@ -381,11 +404,6 @@ async function main() {
 
     const walletAddress = tronWeb.defaultAddress.base58;
     recipient = recipient || walletAddress;
-
-    // Validate no self-transfer
-    if (recipient === walletAddress && recipient !== walletAddress) {
-      throw new Error('Self-transfer detected: recipient cannot be the same as wallet address');
-    }
 
     console.error(`💼 Wallet: ${walletAddress}`);
     console.error(`📍 Recipient: ${recipient}`);
