@@ -6,8 +6,13 @@
  * Get price quote for token swap
  * Usage: node quote.js <FROM> <TO> <AMOUNT> [--network nile|mainnet]
  * 
+ * FROM/TO can be either:
+ *   - Token symbol (USDT, TRX, USDC, etc.)
+ *   - Token contract address (T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb)
+ * 
  * Examples:
  *   node quote.js TRX USDT 100
+ *   node quote.js TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb 50
  *   node quote.js USDT TRX 50 --network mainnet
  */
 
@@ -33,14 +38,17 @@ function parseArgs() {
   if (args.length < 3) {
     console.error('Usage: node quote.js <FROM> <TO> <AMOUNT> [--network nile|mainnet]');
     console.error('');
+    console.error('FROM/TO can be token symbol (USDT, TRX) or address (T9yD...)');
+    console.error('');
     console.error('Examples:');
     console.error('  node quote.js TRX USDT 100');
     console.error('  node quote.js USDT TRX 50 --network mainnet');
     process.exit(1);
   }
 
-  const fromSymbol = args[0].toUpperCase();
-  const toSymbol = args[1].toUpperCase();
+  // Don't convert to uppercase if it's an address (starts with T and length 34)
+  const fromSymbol = (args[0].startsWith('T') && args[0].length === 34) ? args[0] : args[0].toUpperCase();
+  const toSymbol = (args[1].startsWith('T') && args[1].length === 34) ? args[1] : args[1].toUpperCase();
   const amount = args[2];
   
   const networkIndex = args.indexOf('--network');
@@ -49,29 +57,48 @@ function parseArgs() {
   return { fromSymbol, toSymbol, amount, network };
 }
 
-function getTokenAddress(symbol, network) {
+function getTokenAddress(symbolOrAddress, network) {
   const networkTokens = tokens[network];
   if (!networkTokens) {
     throw new Error(`Unknown network: ${network}`);
   }
 
-  const token = networkTokens[symbol];
+  // Check if it's already an address (starts with T and is 34 characters)
+  if (symbolOrAddress.startsWith('T') && symbolOrAddress.length === 34) {
+    return symbolOrAddress;
+  }
+
+  // It's a symbol - look it up
+  const token = networkTokens[symbolOrAddress];
   if (!token) {
-    throw new Error(`Unknown token: ${symbol} on ${network}`);
+    throw new Error(`Unknown token: ${symbolOrAddress} on ${network}`);
   }
 
   return token.address;
 }
 
-function getTokenDecimals(symbol, network) {
+function getTokenDecimals(symbolOrAddress, network) {
   const networkTokens = tokens[network];
   if (!networkTokens) {
     throw new Error(`Unknown network: ${network}`);
   }
 
-  const token = networkTokens[symbol];
+  // Check if it's an address
+  if (symbolOrAddress.startsWith('T') && symbolOrAddress.length === 34) {
+    // Try to find it in the token list
+    for (const [symbol, tokenData] of Object.entries(networkTokens)) {
+      if (tokenData.address === symbolOrAddress) {
+        return tokenData.decimals || 6;
+      }
+    }
+    // Not found - default to 6
+    return 6;
+  }
+
+  // It's a symbol
+  const token = networkTokens[symbolOrAddress];
   if (!token) {
-    throw new Error(`Unknown token: ${symbol} on ${network}`);
+    throw new Error(`Unknown token: ${symbolOrAddress} on ${network}`);
   }
 
   return token.decimals;
@@ -97,6 +124,7 @@ function formatOutput(rawAmount, decimals = 6) {
 
 async function getQuote(fromToken, toToken, amountIn, network) {
   const apiUrl = API_ENDPOINTS[network];
+  // API expects amountIn as integer (in smallest unit, e.g., Sun for TRX)
   const url = `${apiUrl}?fromToken=${fromToken}&toToken=${toToken}&amountIn=${amountIn}&typeList=${TYPE_LIST}`;
 
   try {
@@ -135,14 +163,17 @@ async function main() {
     const fromDecimals = getTokenDecimals(fromSymbol, network);
     const toDecimals = getTokenDecimals(toSymbol, network);
 
-    // Format amount with correct decimals
-    const amountIn = formatAmount(amount, fromDecimals);
+    // API expects amountIn as integer WITHOUT decimals
+    // Convert decimal input to integer (e.g., "0.1" -> "0", "10.5" -> "10")
+    // For proper precision, we should multiply by token decimals first
+    const amountInInteger = Math.floor(parseFloat(amount) * Math.pow(10, fromDecimals)).toString();
 
     // Get quote
-    const quote = await getQuote(fromToken, toToken, amountIn, network);
+    const quote = await getQuote(fromToken, toToken, amountInInteger, network);
 
     // Format output with correct decimals
-    const amountOut = formatOutput(quote.amountOut, toDecimals);
+    // API returns amountOut also WITHOUT decimals (e.g., "5.577799")
+    const amountOut = quote.amountOut;
     const priceImpact = parseFloat(quote.impact || 0);
 
     // Build route symbols

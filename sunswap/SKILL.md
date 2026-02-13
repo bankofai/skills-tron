@@ -39,17 +39,23 @@ This skill provides automated scripts for token swaps on SunSwap DEX. No complex
 
 ### 1. Check Balance
 ```bash
-node scripts/balance.js [TOKEN] [--network nile|mainnet]
+node scripts/balance.js [TOKEN_SYMBOL_OR_ADDRESS] [--network nile|mainnet]
 ```
+
+**Parameters:**
+- `TOKEN_SYMBOL_OR_ADDRESS`: Token symbol (e.g., USDT, TRX) or contract address (e.g., TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf)
 
 **Examples:**
 ```bash
 # Check all token balances
 node scripts/balance.js
 
-# Check specific token
+# Check specific token by symbol
 node scripts/balance.js TRX
 node scripts/balance.js USDT --network mainnet
+
+# Check specific token by address
+node scripts/balance.js TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf
 ```
 
 **Output:** JSON with wallet address and token balances
@@ -58,15 +64,26 @@ node scripts/balance.js USDT --network mainnet
 
 ### 2. Get Price Quote
 ```bash
-node scripts/quote.js <FROM> <TO> <AMOUNT> [--network nile|mainnet]
+node scripts/quote.js <FROM_TOKEN> <TO_TOKEN> <AMOUNT> [--network nile|mainnet]
 ```
+
+**Parameters:**
+- `FROM_TOKEN`: Source token symbol (e.g., USDT, TRX) or contract address (e.g., TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf)
+- `TO_TOKEN`: Destination token symbol or contract address
+- `AMOUNT`: Amount to swap (in token units)
 
 **Examples:**
 ```bash
-# Get quote for TRX → USDT
+# Get quote using token symbols
 node scripts/quote.js TRX USDT 100
 
-# Get quote for USDT → TRX on mainnet
+# Get quote using contract addresses
+node scripts/quote.js TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a 0.1
+
+# Mix symbols and addresses
+node scripts/quote.js USDT TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a 50
+
+# Get quote on mainnet
 node scripts/quote.js USDT TRX 50 --network mainnet
 ```
 
@@ -76,8 +93,13 @@ node scripts/quote.js USDT TRX 50 --network mainnet
 
 ### 3. Execute Swap (Flexible Workflow)
 ```bash
-node scripts/swap.js <FROM> <TO> <AMOUNT> [OPTIONS]
+node scripts/swap.js <FROM_TOKEN> <TO_TOKEN> <AMOUNT> [OPTIONS]
 ```
+
+**Parameters:**
+- `FROM_TOKEN`: Source token symbol or contract address
+- `TO_TOKEN`: Destination token symbol or contract address
+- `AMOUNT`: Amount to swap
 
 **Options:**
 - `--network <nile|mainnet>` - Network to use (default: nile)
@@ -91,11 +113,17 @@ node scripts/swap.js <FROM> <TO> <AMOUNT> [OPTIONS]
 **Examples:**
 
 ```bash
-# 🔍 Dry run (check everything, show what would happen)
+# 🔍 Dry run using symbols (check everything, show what would happen)
 node scripts/swap.js TRX USDT 100
 
-# ✅ Execute full workflow (check → approve if needed → swap)
+# ✅ Execute full workflow using symbols
 node scripts/swap.js TRX USDT 100 --execute
+
+# ✅ Execute using contract addresses
+node scripts/swap.js TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a 0.1 --execute
+
+# ✅ Mix symbols and addresses
+node scripts/swap.js USDT TYsbWxNnyTgsZaTFaue9hqpxkU3Fkco94a 50 --execute
 
 # 📊 Check balance and allowance only
 node scripts/swap.js USDT TRX 50 --check-only
@@ -265,7 +293,11 @@ echo $RESULT | jq '.amountOut'
 
 ## 🛠 Supported Tokens
 
-Check `resources/common_tokens.json` for available tokens on each network.
+All scripts support both:
+- **Token symbols** (e.g., TRX, USDT, WTRX) - Must be defined in `resources/common_tokens.json`
+- **Contract addresses** (e.g., TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf) - Any valid TRC20 token address
+
+Check `resources/common_tokens.json` for pre-configured tokens on each network.
 
 **Common tokens:**
 - **TRX** - Native TRON token (no approval needed)
@@ -273,6 +305,9 @@ Check `resources/common_tokens.json` for available tokens on each network.
 - **USDC** - USD Coin
 - **USDD** - Decentralized USD
 - **WTRX** - Wrapped TRX
+
+**Using custom tokens:**
+You can use any token by its contract address, even if it's not in the common tokens list. The scripts will automatically detect it and use default settings (6 decimals).
 
 ---
 

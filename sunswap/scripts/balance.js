@@ -6,9 +6,14 @@
  * Check token balances for configured wallet
  * Usage: node balance.js [TOKEN] [--network nile|mainnet]
  * 
+ * TOKEN can be either:
+ *   - Token symbol (USDT, TRX, USDC, etc.)
+ *   - Token contract address (T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb)
+ * 
  * Examples:
  *   node balance.js                    # Check all tokens
  *   node balance.js TRX                # Check TRX balance only
+ *   node balance.js TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj  # Check by address
  *   node balance.js USDT --network mainnet
  */
 
@@ -44,7 +49,8 @@ function parseArgs() {
       network = args[i + 1];
       i++;
     } else if (!tokenSymbol) {
-      tokenSymbol = args[i].toUpperCase();
+      // Don't convert to uppercase if it's an address (starts with T and length 34)
+      tokenSymbol = (args[i].startsWith('T') && args[i].length === 34) ? args[i] : args[i].toUpperCase();
     }
   }
 
@@ -98,9 +104,42 @@ async function main() {
     const balances = [];
 
     // Filter tokens if specific token requested
-    const tokensToCheck = tokenSymbol
-      ? (networkTokens[tokenSymbol] ? [{ symbol: tokenSymbol, ...networkTokens[tokenSymbol] }] : [])
-      : Object.entries(networkTokens).map(([symbol, data]) => ({ symbol, ...data }));
+    let tokensToCheck;
+    
+    if (tokenSymbol) {
+      // Check if it's an address (starts with T and is 34 characters)
+      if (tokenSymbol.startsWith('T') && tokenSymbol.length === 34) {
+        // It's an address - try to find it in the token list
+        let found = false;
+        for (const [symbol, data] of Object.entries(networkTokens)) {
+          if (data.address === tokenSymbol) {
+            tokensToCheck = [{ symbol, ...data }];
+            found = true;
+            break;
+          }
+        }
+        
+        if (!found) {
+          // Address not in list - create generic token entry
+          console.error(`⚠️  Token address ${tokenSymbol} not in common list, using generic info`);
+          tokensToCheck = [{
+            symbol: 'UNKNOWN',
+            address: tokenSymbol,
+            decimals: 6
+          }];
+        }
+      } else {
+        // It's a symbol
+        if (networkTokens[tokenSymbol]) {
+          tokensToCheck = [{ symbol: tokenSymbol, ...networkTokens[tokenSymbol] }];
+        } else {
+          tokensToCheck = [];
+        }
+      }
+    } else {
+      // No specific token - check all
+      tokensToCheck = Object.entries(networkTokens).map(([symbol, data]) => ({ symbol, ...data }));
+    }
 
     if (tokensToCheck.length === 0) {
       throw new Error(`Token ${tokenSymbol} not found on ${network}`);
