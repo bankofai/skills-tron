@@ -1,102 +1,125 @@
 #!/usr/bin/env node
 
 /**
- * SunSwap Token Price Script
+ * Sun Token Price Script
  *
- * Get token USD price from open.sun.io price API.
+ * Fetch token price from Sun Open API:
+ *   https://open.sun.io/apiv2/price?tokenAddress=<TOKEN_ADDRESS>
  *
  * Usage:
- *   node price.js <TOKEN_SYMBOL_OR_ADDRESS> [--network nile|mainnet]
+ *   node price.js <TOKEN_SYMBOL_OR_ADDRESS> [--currency USD]
  *
  * Examples:
  *   node price.js TRX
- *   node price.js TRX --network mainnet
  *   node price.js T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb
+ *   node price.js USDT --currency USD
  */
 
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 
-// Load token addresses
+// Load token addresses (for symbol → address resolution, mainnet only)
 const tokensPath = path.join(__dirname, '../resources/common_tokens.json');
 const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
 
-// Price API (chain-agnostic by token address)
-const PRICE_API_URL = 'https://open.sun.io/apiv2/price';
+const PRICE_API = 'https://open.sun.io/apiv2/price';
 
 function parseArgs() {
   const args = process.argv.slice(2);
 
   if (args.length < 1) {
-    console.error('Usage: node price.js <TOKEN_SYMBOL_OR_ADDRESS> [--network nile|mainnet]');
+    console.error('Usage: node price.js <TOKEN_SYMBOL_OR_ADDRESS> [--currency USD]');
     console.error('');
-    console.error('Examples:');
-    console.error('  node price.js TRX');
-    console.error('  node price.js TRX --network mainnet');
-    console.error('  node price.js T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb');
+    console.error('TOKEN_SYMBOL_OR_ADDRESS can be token symbol (TRX, USDT) or TRC20 address (T9yD...)');
     process.exit(1);
   }
 
-  const tokenInput = args[0];
-  const networkIndex = args.indexOf('--network');
-  const network = networkIndex !== -1 ? args[networkIndex + 1] : 'nile';
+  let tokenInput = null;
+  let currency = 'USD';
 
-  return { tokenInput, network };
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--currency' && i + 1 < args.length) {
+      currency = args[i + 1].toUpperCase();
+      i++;
+    } else if (!tokenInput) {
+      // Don't uppercase if it's an address (starts with T and length 34)
+      tokenInput =
+        args[i].startsWith('T') && args[i].length === 34
+          ? args[i]
+          : args[i].toUpperCase();
+    }
+  }
+
+  return { tokenInput, currency };
 }
 
-function getTokenAddress(symbolOrAddress, network) {
-  const networkTokens = tokens[network];
-  if (!networkTokens) {
-    throw new Error(`Unknown network: ${network}`);
+function resolveTokenAddress(tokenInput) {
+  // If it's already an address (starts with T and 34 chars), return directly
+  if (tokenInput.startsWith('T') && tokenInput.length === 34) {
+    return { tokenAddress: tokenInput, tokenSymbol: null };
   }
 
-  // If already an address (starts with T and length 34), use directly
-  if (symbolOrAddress.startsWith('T') && symbolOrAddress.length === 34) {
-    return symbolOrAddress;
+  const mainnetTokens = tokens.mainnet;
+  if (!mainnetTokens) {
+    throw new Error('Mainnet token list not found in resources/common_tokens.json');
   }
 
-  const symbol = symbolOrAddress.toUpperCase();
-  const token = networkTokens[symbol];
+  const token = mainnetTokens[tokenInput];
   if (!token) {
-    throw new Error(`Unknown token: ${symbol} on ${network}`);
+    throw new Error(`Unknown token symbol on mainnet: ${tokenInput}`);
   }
 
-  return token.address;
+  return { tokenAddress: token.address, tokenSymbol: tokenInput };
 }
 
-async function getTokenPriceUSD(tokenAddress) {
-  const url = `${PRICE_API_URL}?tokenAddress=${encodeURIComponent(tokenAddress)}`;
+async function getTokenPrice(tokenAddress, currency = 'USD') {
+  const url = `${PRICE_API}?tokenAddress=${encodeURIComponent(tokenAddress)}`;
 
   try {
     const response = await axios.get(url, { timeout: 10000 });
+    const body = response.data;
 
-    if (response.data.code !== 0) {
-      throw new Error(`API Error: ${response.data.msg || 'Unknown error'}`);
+    if (body.code !== 0) {
+      throw new Error(body.msg || 'API returned non-zero code');
     }
 
-    const tokenData = response.data.data[tokenAddress];
-    if (!tokenData || !tokenData.quote || !tokenData.quote.USD) {
-      throw new Error('No USD price data returned for token');
+    if (!body.data || !body.data[tokenAddress]) {
+      throw new Error('Price data missing for token address');
     }
 
-    const priceStr = tokenData.quote.USD.price;
-    const lastUpdated = tokenData.quote.USD.last_updated;
+    const tokenData = body.data[tokenAddress];
+    if (!tokenData.quote || !tokenData.quote[currency]) {
+      throw new Error(`No quote available in currency ${currency}`);
+    }
+
+    const quote = tokenData.quote[currency];
+    const priceStr = quote.price;
+    const lastUpdated = quote.last_updated;
 
     const price = parseFloat(priceStr);
     if (!Number.isFinite(price) || price <= 0) {
-      throw new Error('Invalid price value from API');
+      throw new Error(`Invalid price value: ${priceStr}`);
     }
 
     return {
-      priceUSD: price,
-      lastUpdated
+      tokenAddress,
+      currency,
+      price,
+      priceRaw: priceStr,
+      lastUpdated,
+      lastUpdatedISO:
+        typeof lastUpdated === 'number'
+          ? new Date(lastUpdated).toISOString()
+          : null
     };
   } catch (error) {
     if (error.response) {
-      throw new Error(`API request failed: ${error.response.status} ${error.response.statusText}`);
+      throw new Error(
+        `Price API request failed: ${error.response.status} ${error.response.statusText}`
+      );
     } else if (error.request) {
-      throw new Error('API request timeout or network error');
+      throw new Error('Price API request timeout or network error');
     } else {
       throw error;
     }
@@ -105,33 +128,38 @@ async function getTokenPriceUSD(tokenAddress) {
 
 async function main() {
   try {
-    const { tokenInput, network } = parseArgs();
+    const { tokenInput, currency } = parseArgs();
 
-    console.error(`🔍 Getting USD price for ${tokenInput} on ${network}...`);
+    console.error(
+      `💲 Fetching ${currency} price for ${tokenInput} from Sun Open API...`
+    );
     console.error('');
 
-    const tokenAddress = getTokenAddress(tokenInput, network);
-    const { priceUSD, lastUpdated } = await getTokenPriceUSD(tokenAddress);
+    const { tokenAddress, tokenSymbol } = resolveTokenAddress(tokenInput);
 
-    const result = {
-      token: tokenInput.startsWith('T') && tokenInput.length === 34 ? tokenAddress : tokenInput.toUpperCase(),
-      tokenAddress,
-      network,
-      priceUSD,
-      lastUpdated,
-      source: 'https://open.sun.io/apiv2/price'
+    const result = await getTokenPrice(tokenAddress, currency);
+
+    const output = {
+      tokenSymbol: tokenSymbol || tokenInput,
+      tokenAddress: result.tokenAddress,
+      currency: result.currency,
+      price: result.price,
+      priceRaw: result.priceRaw,
+      lastUpdated: result.lastUpdated,
+      lastUpdatedISO: result.lastUpdatedISO
     };
 
-    // JSON for parsing
-    console.log(JSON.stringify(result, null, 2));
+    // JSON to stdout
+    console.log(JSON.stringify(output, null, 2));
 
-    // Human-readable summary
+    // Human-readable summary to stderr
     console.error('✅ Price fetched successfully:');
-    console.error(`   Token: ${result.token} (${result.tokenAddress})`);
-    console.error(`   Network: ${network}`);
-    console.error(`   Price: $${result.priceUSD}`);
-    console.error(`   Last Updated: ${new Date(result.lastUpdated).toISOString()}`);
-    console.error('');
+    console.error(
+      `   1 ${output.tokenSymbol} ≈ ${output.price} ${output.currency}`
+    );
+    if (output.lastUpdatedISO) {
+      console.error(`   Last Updated: ${output.lastUpdatedISO}`);
+    }
   } catch (error) {
     console.error('❌ Error:', error.message);
     process.exit(1);
@@ -142,8 +170,5 @@ if (require.main === module) {
   main();
 }
 
-module.exports = {
-  getTokenAddress,
-  getTokenPriceUSD
-};
+module.exports = { getTokenPrice, resolveTokenAddress };
 

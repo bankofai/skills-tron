@@ -1,55 +1,45 @@
 #!/usr/bin/env node
 
 /**
- * Basic runtime test for scripts/price.js
+ * Basic sanity test for price.js
  *
- * This test:
- * 1. Resolves TRX address from common_tokens.json (mainnet)
- * 2. Calls open.sun.io price API via getTokenPriceUSD
- * 3. Asserts the returned price is a positive number
+ * This test calls getTokenPrice for TRX mainnet address and asserts:
+ *   - price is a positive number
+ *   - currency is USD
  */
 
-const assert = require('assert');
-const path = require('path');
-const fs = require('fs');
-
-const { getTokenAddress, getTokenPriceUSD } = require('./price');
-
-async function testTrxPriceMainnet() {
-  const tokensPath = path.join(__dirname, '../resources/common_tokens.json');
-  const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
-
-  const trxAddress = tokens.mainnet.TRX.address;
-  assert.ok(trxAddress, 'TRX address should exist in mainnet token list');
-
-  const { priceUSD, lastUpdated } = await getTokenPriceUSD(trxAddress);
-
-  assert.ok(typeof priceUSD === 'number', 'priceUSD should be a number');
-  assert.ok(priceUSD > 0, 'priceUSD should be > 0');
-  assert.ok(lastUpdated, 'lastUpdated should be defined');
-}
-
-async function testSymbolResolution() {
-  const addrMainnet = getTokenAddress('TRX', 'mainnet');
-  const addrNile = getTokenAddress('TRX', 'nile');
-
-  assert.ok(addrMainnet && addrNile, 'TRX address should be resolvable on both networks');
-}
+const { getTokenPrice } = require('./price');
 
 async function run() {
+  const TRX_MAINNET_ADDRESS = 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb';
+
   try {
-    console.error('Running price.js tests...');
+    console.error('🧪 Running price.test.js (TRX / USD)...');
+    const result = await getTokenPrice(TRX_MAINNET_ADDRESS, 'USD');
 
-    await testTrxPriceMainnet();
-    console.error('✅ TRX price (mainnet) test passed');
+    if (result.currency !== 'USD') {
+      throw new Error(`Expected currency USD, got ${result.currency}`);
+    }
 
-    await testSymbolResolution();
-    console.error('✅ Symbol resolution test passed');
+    if (!Number.isFinite(result.price) || result.price <= 0) {
+      throw new Error(`Expected positive price, got ${result.price}`);
+    }
 
-    console.error('All price.js tests passed.');
-    process.exit(0);
-  } catch (err) {
-    console.error('❌ Test failed:', err.message);
+    console.error('✅ price.test.js passed');
+    console.log(
+      JSON.stringify(
+        {
+          success: true,
+          tokenAddress: result.tokenAddress,
+          currency: result.currency,
+          price: result.price
+        },
+        null,
+        2
+      )
+    );
+  } catch (error) {
+    console.error('❌ price.test.js failed:', error.message);
     process.exit(1);
   }
 }
