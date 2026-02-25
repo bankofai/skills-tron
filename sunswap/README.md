@@ -18,10 +18,12 @@ This skill uses **script-based execution** instead of direct MCP tool calls. Scr
 - **[SKILL.md](SKILL.md)** - Complete skill documentation
 - **[scripts/balance.js](scripts/balance.js)** - Check token balances
 - **[scripts/quote.js](scripts/quote.js)** - Get price quotes
-- **[scripts/price.js](scripts/price.js)** - Get token USD prices from Sun price API
+- **[scripts/price.js](scripts/price.js)** - Get token spot price via Sun Open API
 - **[scripts/swap.js](scripts/swap.js)** - Execute swaps (with flexible workflow options)
+- **[scripts/liquidity.js](scripts/liquidity.js)** - Add/remove liquidity on SunSwap V2 pools
 - **[resources/sunswap_contracts.json](resources/sunswap_contracts.json)** - Contract addresses and API endpoints
 - **[resources/common_tokens.json](resources/common_tokens.json)** - Token addresses and decimals
+- **[resources/liquidity_manager_contracts.json](resources/liquidity_manager_contracts.json)** - SunSwap V2 Router/Factory addresses and ABIs
 
 ## Networks
 
@@ -49,16 +51,37 @@ node scripts/balance.js USDT nile
 node scripts/quote.js TRX USDT 100 nile
 ```
 
-### Get Token USD Price
+### Get Token Price (Sun Open API)
 ```bash
-# By symbol (uses resources/common_tokens.json)
+# By symbol (mainnet)
 node scripts/price.js TRX
 
-# Explicit network for symbol resolution
-node scripts/price.js TRX --network mainnet
-
-# By address (network only affects display)
+# By contract address (mainnet TRX)
 node scripts/price.js T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb
+
+# Explicit currency (defaults to USD)
+node scripts/price.js USDT --currency USD
+```
+
+### Add Liquidity (SunSwap V2)
+```bash
+# Dry-run (shows optimal amounts, approvals needed)
+node scripts/liquidity.js add TRX USDT 100 15 --network nile
+
+# Execute
+node scripts/liquidity.js add TRX USDT 100 15 --network nile --execute
+
+# Two TRC20 tokens
+node scripts/liquidity.js add USDT USDC 100 100 --network nile --execute
+```
+
+### Remove Liquidity (SunSwap V2)
+```bash
+# Dry-run
+node scripts/liquidity.js remove TRX USDT 5.5 --network nile
+
+# Execute
+node scripts/liquidity.js remove TRX USDT 5.5 --network nile --execute
 ```
 
 ### Execute Swap (Full Workflow)
@@ -83,6 +106,18 @@ node scripts/swap.js TRX USDT 100 nile --swap-only
 - Node.js 14+
 - tronweb
 - axios
+
+## Tests
+
+```bash
+cd skills/sunswap
+
+# Price script tests (network call to Sun Open API)
+npm run test:price
+
+# Liquidity script tests (pure-function + optional on-chain read)
+npm run test:liquidity
+```
 
 ## Version
 

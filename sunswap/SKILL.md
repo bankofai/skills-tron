@@ -140,6 +140,43 @@ node scripts/quote.js USDT TRX 50 --network mainnet
 
 ---
 
+### 3. Get Token Spot Price (Sun Open API)
+
+```bash
+node scripts/price.js <TOKEN_SYMBOL_OR_ADDRESS> [--currency USD]
+```
+
+**Parameters:**
+- `TOKEN_SYMBOL_OR_ADDRESS`: Token symbol on **mainnet** (e.g., TRX, USDT) or contract address
+- `--currency`: Fiat currency code (default: `USD`)
+
+**Examples:**
+```bash
+# TRX price by symbol (mainnet)
+node scripts/price.js TRX
+
+# TRX price by contract address (mainnet)
+node scripts/price.js T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb
+
+# USDT price with explicit currency
+node scripts/price.js USDT --currency USD
+```
+
+**Output (stdout JSON):**
+- `tokenSymbol` - Token symbol (if known)
+- `tokenAddress` - Token TRC20 address
+- `currency` - Fiat currency (e.g., USD)
+- `price` - Parsed numeric price
+- `priceRaw` - Raw string price from API
+- `lastUpdated` - Raw timestamp from API
+- `lastUpdatedISO` - Parsed ISO timestamp (if provided)
+
+**Notes:**
+- This script uses **Sun Open API** endpoint `https://open.sun.io/apiv2/price?tokenAddress=...`  
+- Only **mainnet** token prices are supported (symbol resolution uses `mainnet` section of `resources/common_tokens.json`)
+
+---
+
 ### 4. Execute Swap (Flexible Workflow)
 ```bash
 node scripts/swap.js <FROM_TOKEN> <TO_TOKEN> <AMOUNT> [OPTIONS]
@@ -328,6 +365,10 @@ The script automatically:
 All scripts output:
 - **JSON to stdout** - For parsing
 - **Human-readable to stderr** - For logging
+
+The new **price script** (`scripts/price.js`) follows the same convention:
+- JSON result to stdout (safe for programmatic consumption)
+- Human-readable summary (price, symbol, currency, timestamp) to stderr
 
 **Example:**
 ```bash
@@ -521,6 +562,140 @@ npm install
 
 ---
 
+---
+
+## 🌊 SunSwap V2 Liquidity Management
+
+Manage liquidity on SunSwap V2 AMM pools using `scripts/liquidity.js`.
+
+Contract configuration is loaded from `resources/liquidity_manager_contracts.json`.
+
+| Network | V2 Router | V2 Factory |
+|---------|-----------|------------|
+| **Mainnet** | `TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax` | `TKWJdrQkqHisa1X8HUdHEfREvTzw4pMAaY` |
+| **Nile** | `TMn1qrmYUMSTXo9babrJLzepKZoPC7M6Sy` | `THomLGMLhAjMecQf9FQjbZ8a1RtwsZLrGE` |
+
+---
+
+### 5. Add Liquidity
+
+```bash
+node scripts/liquidity.js add <TOKEN_A> <TOKEN_B> <AMOUNT_A> <AMOUNT_B> [OPTIONS]
+```
+
+**Parameters:**
+- `TOKEN_A` / `TOKEN_B`: Token symbol (TRX, USDT, …) or TRC20 address
+- `AMOUNT_A` / `AMOUNT_B`: Desired amounts (human-readable, e.g. `100`)
+
+**Options:**
+- `--network <nile|mainnet>` - Network (default: nile)
+- `--slippage <5>` - Slippage tolerance % (default: 5)
+- `--execute` - Execute on-chain (without this, dry-run only)
+- `--check-only` - Only check balances and allowances (read-only, no private key used)
+- `--approve-only` - Only approve tokens (requires `--execute`)
+
+**Step-by-step workflow (same pattern as swap.js):**
+1. `--check-only` → Read-only: check reserves, compute optimal amounts, check balances & allowances
+2. `--approve-only --execute` → Approve tokens for the router (user confirms this step)
+3. `--execute` → Add liquidity (will NOT auto-approve; stops if approval still needed)
+
+**Examples:**
+```bash
+# Step 1: Check everything (read-only, no private key)
+node scripts/liquidity.js add TRX USDT 100 15 --check-only
+
+# Step 2: Approve if needed (user confirms)
+node scripts/liquidity.js add TRX USDT 100 15 --approve-only --execute
+
+# Step 3: Execute add liquidity
+node scripts/liquidity.js add TRX USDT 100 15 --execute
+
+# Two TRC20 tokens
+node scripts/liquidity.js add USDT USDC 100 100 --check-only
+node scripts/liquidity.js add USDT USDC 100 100 --approve-only --execute
+node scripts/liquidity.js add USDT USDC 100 100 --execute
+```
+
+**Output (stdout JSON):**
+- `--check-only`: `readyToExecute`, `needsApproval`, balances, optimal amounts
+- `--approve-only --execute`: `approved: [{ symbol, transaction }]`
+- `--execute` when approval needed: `status: "approval_required"`, `needsApproval: [...]`
+- `--execute` on success: `success`, `transaction`, `explorer`, `pool`, `lpGained`, `tokenA`, `tokenB`, `unusedTokens`
+
+---
+
+### 6. Remove Liquidity
+
+```bash
+node scripts/liquidity.js remove <TOKEN_A> <TOKEN_B> <LP_AMOUNT> [OPTIONS]
+```
+
+**Parameters:**
+- `TOKEN_A` / `TOKEN_B`: The two tokens in the pool
+- `LP_AMOUNT`: Amount of LP tokens to remove (human-readable, 18 decimals)
+- Same `--network`, `--slippage`, `--execute`, `--check-only`, `--approve-only` options as above
+
+**Step-by-step workflow:**
+1. `--check-only` → Read-only: check LP balance, compute expected token output, check LP allowance
+2. `--approve-only --execute` → Approve LP token for the router (user confirms this step)
+3. `--execute` → Remove liquidity (will NOT auto-approve; stops if LP approval still needed)
+
+**Examples:**
+```bash
+# Step 1: Check everything (read-only)
+node scripts/liquidity.js remove TRX USDT 5.5 --check-only
+
+# Step 2: Approve LP token if needed (user confirms)
+node scripts/liquidity.js remove TRX USDT 5.5 --approve-only --execute
+
+# Step 3: Execute remove liquidity
+node scripts/liquidity.js remove TRX USDT 5.5 --execute
+```
+
+**Output (stdout JSON):**
+- `--check-only`: `readyToExecute`, `needsApproval`, LP balance, expected token output
+- `--approve-only --execute`: `approved: [{ symbol, address, transaction }]`
+- `--execute` when approval needed: `status: "approval_required"`, `needsApproval: ["LP"]`
+- `--execute` on success: `success`, `transaction`, `explorer`, `pool`, `lpRemoved`, `lpRemaining`, `expectedTokenA`, `expectedTokenB`
+
+---
+
+### Recommended Liquidity Workflow for AI Agents
+
+Follow the **same pattern as swap.js** — each private-key operation requires a separate explicit command with `--execute`.
+
+**Adding liquidity (3-step):**
+
+```bash
+# Step 1: Check (read-only, safe to run without user confirmation)
+node scripts/liquidity.js add TRX USDT 100 15 --check-only
+# → Show user: optimal amounts, unused tokens, whether approval is needed
+
+# Step 2: Approve (only if needed — ask user to confirm first)
+node scripts/liquidity.js add TRX USDT 100 15 --approve-only --execute
+
+# Step 3: Add liquidity (ask user to confirm first)
+node scripts/liquidity.js add TRX USDT 100 15 --execute
+```
+
+**Removing liquidity (3-step):**
+
+```bash
+# Step 1: Check (read-only)
+node scripts/liquidity.js remove TRX USDT 5.5 --check-only
+# → Show user: expected token output, whether LP approval is needed
+
+# Step 2: Approve LP token (only if needed — ask user to confirm first)
+node scripts/liquidity.js remove TRX USDT 5.5 --approve-only --execute
+
+# Step 3: Remove liquidity (ask user to confirm first)
+node scripts/liquidity.js remove TRX USDT 5.5 --execute
+```
+
+**Key principle:** The script **never** auto-approves. Every operation that uses the private key requires a separate explicit `--execute` command. The AI agent must show the user what will happen and get confirmation before running any `--execute` step.
+
+---
+
 **Version**: 2.0.0 (Script-based)  
-**Last Updated**: 2026-02-13  
+**Last Updated**: 2026-02-25  
 **Maintainer**: Bank of AI Team
