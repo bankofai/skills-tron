@@ -18,6 +18,7 @@ This skill uses **script-based execution** instead of direct MCP tool calls. Scr
 - **[SKILL.md](SKILL.md)** - Complete skill documentation
 - **[scripts/balance.js](scripts/balance.js)** - Check token balances
 - **[scripts/quote.js](scripts/quote.js)** - Get price quotes
+- **[scripts/price.js](scripts/price.js)** - Get token USD prices from Sun price API
 - **[scripts/swap.js](scripts/swap.js)** - Execute swaps (with flexible workflow options)
 - **[resources/sunswap_contracts.json](resources/sunswap_contracts.json)** - Contract addresses and API endpoints
 - **[resources/common_tokens.json](resources/common_tokens.json)** - Token addresses and decimals
@@ -46,6 +47,18 @@ node scripts/balance.js USDT nile
 ### Get Quote
 ```bash
 node scripts/quote.js TRX USDT 100 nile
+```
+
+### Get Token USD Price
+```bash
+# By symbol (uses resources/common_tokens.json)
+node scripts/price.js TRX
+
+# Explicit network for symbol resolution
+node scripts/price.js TRX --network mainnet
+
+# By address (network only affects display)
+node scripts/price.js T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb
 ```
 
 ### Execute Swap (Full Workflow)

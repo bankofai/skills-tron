@@ -62,7 +62,56 @@ node scripts/balance.js TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf
 
 ---
 
-### 2. Get Price Quote
+### 2. Get Token USD Price
+```bash
+node scripts/price.js <TOKEN_SYMBOL_OR_ADDRESS> [--network nile|mainnet]
+```
+
+This script calls the public price API from Sun (`https://open.sun.io/apiv2/price`) using the token address.
+
+**Parameters:**
+- `TOKEN_SYMBOL_OR_ADDRESS`: Token symbol (e.g., TRX, USDT) or contract address (e.g., T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb)
+- `--network`: Network to use for symbol resolution (`nile` or `mainnet`, default: `nile`).  
+  This only affects how symbols are mapped to addresses using `resources/common_tokens.json`.  
+  The price API itself is address-based.
+
+**Examples:**
+```bash
+# Get TRX price on Nile (symbol → address via common_tokens.json)
+node scripts/price.js TRX
+
+# Get TRX price on mainnet (symbol resolution uses mainnet section)
+node scripts/price.js TRX --network mainnet
+
+# Get price by explicit token address
+node scripts/price.js T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb
+```
+
+**Output:** JSON to stdout with fields:
+- `token` - Input token symbol or address
+- `tokenAddress` - Resolved token address
+- `network` - Network used for symbol resolution
+- `priceUSD` - Latest price in USD
+- `lastUpdated` - Milliseconds timestamp from API
+- `source` - Price API endpoint (`https://open.sun.io/apiv2/price`)
+
+Example JSON:
+```json
+{
+  "token": "TRX",
+  "tokenAddress": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+  "network": "nile",
+  "priceUSD": 0.281424962354,
+  "lastUpdated": 1771928248488,
+  "source": "https://open.sun.io/apiv2/price"
+}
+```
+
+The script also prints a human-readable summary to stderr for logging.
+
+---
+
+### 3. Get Price Quote
 ```bash
 node scripts/quote.js <FROM_TOKEN> <TO_TOKEN> <AMOUNT> [--network nile|mainnet]
 ```
@@ -91,7 +140,7 @@ node scripts/quote.js USDT TRX 50 --network mainnet
 
 ---
 
-### 3. Execute Swap (Flexible Workflow)
+### 4. Execute Swap (Flexible Workflow)
 ```bash
 node scripts/swap.js <FROM_TOKEN> <TO_TOKEN> <AMOUNT> [OPTIONS]
 ```
