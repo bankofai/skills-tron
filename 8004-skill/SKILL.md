@@ -163,6 +163,7 @@ All scripts support multi-chain (TRON + BSC):
 
 - **register.js** - Register new agent on-chain
 - **query.js** - Query agent info and reputation
+- **search.js** - Semantic search agents via search-service API
 - **feedback.js** - Submit feedback/reputation scores
 - **set-uri.js** - Update agent metadata URI
 
@@ -189,6 +190,9 @@ node scripts/query.js reputation 1 --chain tron --network nile
 
 # 6. Update URI if needed
 node scripts/set-uri.js --agent-id 1 --uri "ipfs://QmNewHash" --chain tron --network nile
+
+# 7. Semantic search by keyword
+node scripts/search.js --query "market order" --url "https://tn-search-service.bankofai.io" --chain-id 3448148188
 ```
 
 ### Multi-Chain Examples
