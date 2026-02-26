@@ -21,6 +21,7 @@ This skill uses **script-based execution** instead of direct MCP tool calls. Scr
 - **[scripts/price.js](scripts/price.js)** - Get token spot price via Sun Open API
 - **[scripts/swap.js](scripts/swap.js)** - Execute swaps (with flexible workflow options)
 - **[scripts/liquidity.js](scripts/liquidity.js)** - Add/remove liquidity on SunSwap V2 pools
+- **[scripts/position.js](scripts/position.js)** - Manage V3 concentrated liquidity positions (add/remove/collect)
 - **[resources/sunswap_contracts.json](resources/sunswap_contracts.json)** - Contract addresses and API endpoints
 - **[resources/common_tokens.json](resources/common_tokens.json)** - Token addresses and decimals
 - **[resources/liquidity_manager_contracts.json](resources/liquidity_manager_contracts.json)** - SunSwap V2 Router/Factory addresses and ABIs
@@ -84,6 +85,23 @@ node scripts/liquidity.js remove TRX USDT 5.5 --network nile
 node scripts/liquidity.js remove TRX USDT 5.5 --network nile --execute
 ```
 
+### V3 Position Management (SunSwap V3)
+```bash
+# List positions
+node scripts/position.js positions --network nile
+
+# Add position (3-step workflow)
+node scripts/position.js add TRX USDT 100 15 --fee 3000 --tick-lower -60 --tick-upper 60 --check-only
+node scripts/position.js add TRX USDT 100 15 --fee 3000 --tick-lower -60 --tick-upper 60 --approve-only --execute
+node scripts/position.js add TRX USDT 100 15 --fee 3000 --tick-lower -60 --tick-upper 60 --execute
+
+# Remove 50% of position
+node scripts/position.js remove --position-id 12345 --percent 50 --execute
+
+# Collect fees
+node scripts/position.js collect --position-id 12345 --execute
+```
+
 ### Execute Swap (Full Workflow)
 ```bash
 node scripts/swap.js TRX USDT 100 nile --execute
@@ -117,6 +135,9 @@ npm run test:price
 
 # Liquidity script tests (pure-function + optional on-chain read)
 npm run test:liquidity
+
+# V3 Position script tests (pure-function: V3 math, tick alignment, etc.)
+npm run test:position
 ```
 
 ## Version

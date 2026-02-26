@@ -696,6 +696,192 @@ node scripts/liquidity.js remove TRX USDT 5.5 --execute
 
 ---
 
-**Version**: 2.0.0 (Script-based)  
-**Last Updated**: 2026-02-25  
+## ⚡ SunSwap V3 Position Management (Concentrated Liquidity)
+
+Manage V3 concentrated liquidity positions using `scripts/position.js`.
+
+Contract configuration is loaded from `resources/liquidity_manager_contracts.json`.
+
+| Network | V3 Factory | V3 Position Manager |
+|---------|-----------|---------------------|
+| **Mainnet** | `TThJt8zaJzJMhCEScH7zWKnp5buVZqys9x` | `TLSWrv7eC1AZCXkRjpqMZUmvgd99cj7pPF` |
+| **Nile** | `TLJWAScHZ4Qmk1axyKMzrnoYuu2pSLer1F` | `TPQzqHbCzQfoVdAV6bLwGDos8Lk2UjXz2R` |
+
+**Fee tiers:**
+
+| Fee Rate | Fee Value | Tick Spacing |
+|----------|-----------|-------------|
+| 0.01%    | 100       | 1           |
+| 0.05%    | 500       | 10          |
+| 0.3%     | 3000      | 60          |
+| 1%       | 10000     | 200         |
+
+---
+
+### 7. Check User Positions
+
+```bash
+node scripts/position.js positions [--network nile|mainnet]
+```
+
+Enumerates positions directly on-chain via the NonfungiblePositionManager contract (`balanceOf` + `tokenOfOwnerByIndex` + `positions`).
+
+**Output (stdout JSON):** `{ positions: [...], count, source: "onchain" }`
+
+---
+
+### 8. Add / Increase V3 Position
+
+```bash
+node scripts/position.js add TOKEN_A TOKEN_B AMT_A AMT_B --fee N --tick-lower N --tick-upper N [OPTIONS]
+```
+
+**Parameters:**
+- `TOKEN_A` / `TOKEN_B`: Token symbol (TRX, USDT, …) or TRC20 address
+- `AMT_A` / `AMT_B`: Desired amounts (human-readable)
+- `--fee <100|500|3000|10000>`: Pool fee tier
+- `--tick-lower <N>` / `--tick-upper <N>`: Price range ticks (auto-aligned to tick spacing)
+
+**Options:**
+- `--network <nile|mainnet>` - Network (default: nile)
+- `--slippage <5>` - Slippage tolerance % (default: 5)
+- `--execute` - Execute on-chain
+- `--check-only` - Read-only check
+- `--approve-only` - Only approve tokens (requires `--execute`)
+- `--create-pool` - Create pool if it doesn't exist
+- `--position-id <N>` - Force increase on a specific position
+
+**Behavior:**
+1. Checks pool existence → if missing, reports `pool_not_found` (use `--create-pool --execute` to create)
+2. Searches for existing position matching (tokens, fee, ticks) → `mint` if new, `increaseLiquidity` if exists
+3. Estimates actual token amounts using V3 liquidity math
+4. Checks balances and approvals (tokens must be approved to the PositionManager, including WTRX for TRX)
+5. Follows `--check-only` / `--approve-only` / `--execute` pattern (same as V2 liquidity)
+
+**Important:** When TRX is specified, it is auto-substituted to WTRX for V3. The user needs WTRX balance (not TRX).
+
+**Step-by-step workflow:**
+```bash
+# Step 1: Check (read-only)
+node scripts/position.js add TRX USDT 100 15 --fee 3000 --tick-lower -60 --tick-upper 60 --check-only
+
+# Step 2: Approve (user confirms)
+node scripts/position.js add TRX USDT 100 15 --fee 3000 --tick-lower -60 --tick-upper 60 --approve-only --execute
+
+# Step 3: Execute (user confirms)
+node scripts/position.js add TRX USDT 100 15 --fee 3000 --tick-lower -60 --tick-upper 60 --execute
+```
+
+**Output (stdout JSON):**
+- `--check-only`: `action`, `poolExists`, `currentTick`, `estimatedLiquidity`, `token0`, `token1`, `needsApproval`, `readyToExecute`
+- `--approve-only --execute`: `approved: [{ symbol, transaction }]`
+- `--execute`: `success`, `transaction`, `positionId`, `pool`, `tickLower`, `tickUpper`, `fee`
+
+---
+
+### 9. Remove / Decrease V3 Position
+
+```bash
+node scripts/position.js remove [TOKEN_A TOKEN_B --fee N --tick-lower N --tick-upper N | --position-id N] [--percent N] [OPTIONS]
+```
+
+**Parameters:**
+- Identify position by tokens + fee + ticks, OR by `--position-id`
+- `--percent <0-100>` - Percentage of liquidity to remove (default: 100 = full removal)
+
+**Behavior:**
+1. Finds position (on-chain lookup)
+2. Computes estimated token output and remaining position info
+3. Executes `decreaseLiquidity` followed by `collect` (two transactions)
+
+**Step-by-step workflow:**
+```bash
+# Step 1: Check
+node scripts/position.js remove --position-id 12345 --percent 50 --check-only
+
+# Step 2: Execute
+node scripts/position.js remove --position-id 12345 --percent 50 --execute
+```
+
+**Output (stdout JSON):**
+- `--check-only`: `positionId`, `percent`, `liquidityToRemove`, `expectedToken0`, `expectedToken1`, `remainingLiquidity`
+- `--execute`: `success`, `transactions: { decreaseLiquidity, collect }`, `remainingLiquidity`
+
+---
+
+### 10. Collect V3 Fee Rewards
+
+```bash
+node scripts/position.js collect [TOKEN_A TOKEN_B --fee N --tick-lower N --tick-upper N | --position-id N] [OPTIONS]
+```
+
+**Parameters:**
+- Identify position by tokens + fee + ticks, OR by `--position-id`
+
+**Behavior:**
+1. Finds position on-chain
+2. Estimates claimable fees via static call to `collect` (using `collectView` ABI with `stateMutability: "view"` to force `triggerConstantContract`). This returns the exact claimable amounts without executing a transaction.
+3. If fees > 0, executes `collect` on the PositionManager (using the original `payable` ABI)
+
+**Step-by-step workflow:**
+```bash
+# Step 1: Check
+node scripts/position.js collect --position-id 12345 --check-only
+
+# Step 2: Execute
+node scripts/position.js collect --position-id 12345 --execute
+```
+
+**Output (stdout JSON):**
+- `--check-only`: `positionId`, `claimable`, `fee0`, `fee1`, `readyToExecute`
+- `--execute`: `success`, `transaction`, `fee0`, `fee1`
+
+---
+
+### Recommended V3 Position Workflow for AI Agents
+
+Follow the **same pattern as V2 liquidity** — each private-key operation requires explicit `--execute`.
+
+**Adding a V3 position (3-step):**
+
+```bash
+# Step 1: Check (read-only, safe to run without confirmation)
+node scripts/position.js add USDT USDC 1000 1000 --fee 500 --tick-lower -10 --tick-upper 10 --check-only
+# → Show user: pool status, estimated amounts, whether approval is needed
+
+# Step 2: Approve (only if needed — ask user to confirm first)
+node scripts/position.js add USDT USDC 1000 1000 --fee 500 --tick-lower -10 --tick-upper 10 --approve-only --execute
+
+# Step 3: Add position (ask user to confirm first)
+node scripts/position.js add USDT USDC 1000 1000 --fee 500 --tick-lower -10 --tick-upper 10 --execute
+```
+
+**Removing a V3 position (2-step):**
+
+```bash
+# Step 1: Check (read-only)
+node scripts/position.js remove --position-id 12345 --percent 100 --check-only
+# → Show user: expected token output, remaining liquidity
+
+# Step 2: Remove (ask user to confirm first)
+node scripts/position.js remove --position-id 12345 --percent 100 --execute
+```
+
+**Collecting fees (2-step):**
+
+```bash
+# Step 1: Check (read-only)
+node scripts/position.js collect --position-id 12345 --check-only
+# → Show user: claimable fee amounts
+
+# Step 2: Collect (ask user to confirm first)
+node scripts/position.js collect --position-id 12345 --execute
+```
+
+**Key principle:** The script **never** auto-approves or auto-executes. Every private-key operation requires explicit `--execute`.
+
+---
+
+**Version**: 2.1.0 (Script-based)  
+**Last Updated**: 2026-02-24  
 **Maintainer**: Bank of AI Team
