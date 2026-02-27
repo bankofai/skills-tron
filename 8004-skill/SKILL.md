@@ -193,6 +193,9 @@ node scripts/set-uri.js --agent-id 1 --uri "ipfs://QmNewHash" --chain tron --net
 
 # 7. Semantic search by keyword
 node scripts/search.js --query "market order" --url "https://tn-search-service.bankofai.io" --chain-id 3448148188
+
+# 8. Multi-chain search (choose chain(s) based on user request)
+node scripts/search.js --query "x402 a2a payment" --chains "56,3448148188"
 ```
 
 ### Multi-Chain Examples
@@ -205,7 +208,23 @@ node scripts/query.js agent 1 --chain bsc --network mainnet
 
 # Submit feedback on TRON mainnet
 node scripts/feedback.js --agent-id 1 --score 98 --tag1 "quality" --chain tron --network mainnet
+
+# Search only BSC mainnet agents
+node scripts/search.js --query "a2a x402" --chain-id 56
+
+# Search all configured chains in search-service
+node scripts/search.js --query "merchant recharge" --chains all
 ```
+
+### Search Chain Selection Rule
+
+- Always choose search chain(s) from user intent instead of hardcoding a default chain.
+- Use `--chain-id <id>` for a single chain request.
+- Use `--chains "<id1,id2>"` for cross-chain requests.
+- Use `--chains all` when user asks to search all available networks.
+- Common chain IDs:
+  - TRON Nile: `3448148188`
+  - BSC Mainnet: `56`
 
 ## Troubleshooting
 

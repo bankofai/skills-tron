@@ -132,6 +132,15 @@ node scripts/query.js reputation 1 --chain bsc --network testnet
 # Search on TN search-service
 node scripts/search.js --query "ainft" --url "https://tn-search-service.bankofai.io" --chain-id 3448148188
 
+# Search only BSC mainnet
+node scripts/search.js --query "a2a x402" --chain-id 56
+
+# Search multiple chains
+node scripts/search.js --query "payment agent" --chains "56,3448148188"
+
+# Search all chains configured in search-service
+node scripts/search.js --query "merchant recharge" --chains all
+
 # Filter only active x402 agents
 node scripts/search.js --query "payment" --active true --x402 true
 ```

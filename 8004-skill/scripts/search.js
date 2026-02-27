@@ -21,12 +21,28 @@ function parseBoolean(value) {
   return undefined;
 }
 
+function parseChainSelection(value) {
+  if (value === undefined || value === null) return undefined;
+  const raw = String(value).trim();
+  if (!raw) return undefined;
+  if (raw.toLowerCase() === 'all') return 'all';
+  const ids = raw
+    .split(',')
+    .map((v) => Number(v.trim()))
+    .filter((n) => !Number.isNaN(n));
+  if (ids.length === 0) return undefined;
+  return Array.from(new Set(ids));
+}
+
 function parseArgs() {
   const args = process.argv.slice(2);
+  const envChains = parseChainSelection(process.env.SEARCH_CHAINS);
+  const envChainId = process.env.SEARCH_CHAIN_ID ? Number(process.env.SEARCH_CHAIN_ID) : undefined;
+
   const options = {
     query: '',
     url: process.env.SEARCH_SERVICE_URL || 'https://tn-search-service.bankofai.io',
-    chainId: Number(process.env.SEARCH_CHAIN_ID || 3448148188),
+    chains: envChains || (Number.isFinite(envChainId) ? [envChainId] : undefined),
     limit: 10,
     active: undefined,
     x402support: undefined,
@@ -43,7 +59,11 @@ function parseArgs() {
       options.url = args[i + 1];
       i++;
     } else if (arg === '--chain-id' && args[i + 1]) {
-      options.chainId = Number(args[i + 1]);
+      const single = Number(args[i + 1]);
+      options.chains = Number.isNaN(single) ? undefined : [single];
+      i++;
+    } else if (arg === '--chains' && args[i + 1]) {
+      options.chains = parseChainSelection(args[i + 1]);
       i++;
     } else if (arg === '--limit' && args[i + 1]) {
       options.limit = Number(args[i + 1]);
@@ -124,8 +144,11 @@ function buildSearchPayload(options) {
   const payload = {
     query: options.query,
     limit: options.limit,
-    chains: [options.chainId],
   };
+
+  if (options.chains !== undefined) {
+    payload.chains = options.chains;
+  }
 
   const equals = {};
   if (typeof options.active === 'boolean') {
@@ -285,7 +308,8 @@ async function main() {
     console.log('');
     console.log('Optional:');
     console.log('  --url <url>              Search service base URL (default: https://tn-search-service.bankofai.io)');
-    console.log('  --chain-id <id>          Chain ID filter (default: 3448148188)');
+    console.log('  --chain-id <id>          Single chain filter (e.g. 56 or 3448148188)');
+    console.log('  --chains <ids|all>       Multi-chain filter, e.g. "56,3448148188" or "all"');
     console.log('  --limit <n>              Result limit (default: 10)');
     console.log('  --active <bool>          Filter active true/false');
     console.log('  --x402 <bool>            Filter x402support true/false');
@@ -294,13 +318,19 @@ async function main() {
     console.log('');
     console.log('Examples:');
     console.log('  node scripts/search.js --query "payment agent"');
+    console.log('  node scripts/search.js --query "x402 a2a" --chains "56,3448148188"');
     console.log('  node scripts/search.js --query "x402" --active true --x402 true');
     console.log('  node scripts/search.js --query "ainft" --url https://search.example.com --json');
     process.exit(0);
   }
 
-  if (Number.isNaN(options.chainId)) {
-    console.error('❌ Invalid --chain-id value');
+  if (Array.isArray(options.chains)) {
+    if (options.chains.length === 0 || options.chains.some((v) => Number.isNaN(v))) {
+      console.error('❌ Invalid --chain-id/--chains value');
+      process.exit(1);
+    }
+  } else if (options.chains !== undefined && options.chains !== 'all') {
+    console.error('❌ Invalid --chains value (use comma-separated IDs or "all")');
     process.exit(1);
   }
   if (Number.isNaN(options.limit) || options.limit <= 0) {
