@@ -146,11 +146,66 @@ function buildSearchPayload(options) {
   return payload;
 }
 
+function trimText(value, max = 180) {
+  if (!value) return '';
+  const text = String(value).replace(/\s+/g, ' ').trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 3)}...`;
+}
+
+function asStringArray(value) {
+  return Array.isArray(value) ? value.map((v) => String(v)).filter(Boolean) : [];
+}
+
+function formatUri(uri) {
+  if (!uri) return '';
+  const value = String(uri);
+  if (value.startsWith('data:')) {
+    return '[data-uri omitted]';
+  }
+  return trimText(value, 160);
+}
+
+function inferUseCases(item) {
+  const meta = item.metadata || {};
+  const tags = asStringArray(meta.tags).map((t) => t.toLowerCase());
+  const capabilities = asStringArray(meta.capabilities).map((c) => c.toLowerCase());
+  const corpus = [item.name, item.description, tags.join(' '), capabilities.join(' ')]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  const useCases = [];
+  const hasAny = (words) => words.some((w) => corpus.includes(w));
+
+  if (hasAny(['x402', 'payment', 'payee', 'merchant', 'recharge'])) {
+    useCases.push('Payment / x402 settlement');
+  }
+  if (hasAny(['swap', 'dex', 'market', 'trade', 'router'])) {
+    useCases.push('Trading / swap execution');
+  }
+  if (hasAny(['mcp', 'tool', 'prompt', 'agent card'])) {
+    useCases.push('MCP tool agent integration');
+  }
+  if (hasAny(['reputation', 'validation', 'registry', 'trust'])) {
+    useCases.push('Reputation / validation workflow');
+  }
+  if (hasAny(['chat', 'assistant', 'nlp', 'text'])) {
+    useCases.push('General conversational assistant');
+  }
+
+  if (useCases.length === 0) {
+    useCases.push('General-purpose ERC-8004 agent');
+  }
+
+  return useCases.slice(0, 3);
+}
+
 function printHumanReadable(response) {
   const results = Array.isArray(response.results) ? response.results : [];
 
-  console.log('🔎 Semantic Search Results');
-  console.log('');
+  console.log('Semantic Search Results');
+  console.log('=======================');
   console.log(`Query: ${response.query || '(empty)'}`);
   console.log(`Total: ${response.total || 0}`);
   console.log('');
@@ -162,14 +217,55 @@ function printHumanReadable(response) {
 
   for (const item of results) {
     const meta = item.metadata || {};
-    console.log(`#${item.rank}  ${item.name || '(no name)'}`);
-    console.log(`   Agent: ${item.agentId}`);
-    console.log(`   Chain: ${item.chainId}`);
-    console.log(`   Score: ${Number(item.score || 0).toFixed(4)}`);
-    console.log(`   Active: ${meta.active === undefined ? 'unknown' : String(meta.active)}`);
-    console.log(`   X402: ${meta.x402support === undefined ? 'unknown' : String(meta.x402support)}`);
-    if (item.description) {
-      console.log(`   Desc: ${item.description.slice(0, 120)}`);
+    const tags = asStringArray(meta.tags);
+    const capabilities = asStringArray(meta.capabilities);
+    const supportedTrusts = asStringArray(meta.supportedTrusts);
+    const inputModes = asStringArray(meta.defaultInputModes);
+    const outputModes = asStringArray(meta.defaultOutputModes);
+    const useCases = inferUseCases(item);
+    const image = meta.image || meta.avatar || '';
+    const a2a = meta.a2aEndpoint || meta.a2a_endpoint || '';
+    const mcp = meta.mcpEndpoint || meta.mcp_endpoint || '';
+    const wallet = meta.agentWallet || meta.agent_wallet || '';
+    const status = meta.active === true ? 'Active' : (meta.active === false ? 'Inactive' : 'Unknown');
+    const x402 = meta.x402support === true ? 'Yes' : (meta.x402support === false ? 'No' : 'Unknown');
+
+    console.log(`[#${item.rank}] ${item.name || '(no name)'}  (score ${Number(item.score || 0).toFixed(4)})`);
+    console.log(`  Agent ID: ${item.agentId}`);
+    console.log(`  Chain ID: ${item.chainId}`);
+    console.log(`  Status: ${status} | x402: ${x402}`);
+    if (trimText(item.description, 220)) {
+      console.log(`  What this agent does: ${trimText(item.description, 220)}`);
+    }
+    console.log(`  Best use cases: ${useCases.join(' ; ')}`);
+    if (supportedTrusts.length > 0) {
+      console.log(`  Trust model: ${supportedTrusts.join(', ')}`);
+    }
+    if (inputModes.length > 0 || outputModes.length > 0) {
+      console.log(
+        `  IO modes: in[${inputModes.join(', ') || '-'}] -> out[${outputModes.join(', ') || '-'}]`
+      );
+    }
+    if (tags.length > 0) {
+      console.log(`  Tags: ${tags.join(', ')}`);
+    }
+    if (capabilities.length > 0) {
+      console.log(`  Capabilities: ${capabilities.join(', ')}`);
+    }
+    if (mcp) {
+      console.log(`  MCP endpoint: ${mcp}${meta.mcpVersion ? ` (v${meta.mcpVersion})` : ''}`);
+    }
+    if (a2a) {
+      console.log(`  A2A endpoint: ${a2a}${meta.a2aVersion ? ` (v${meta.a2aVersion})` : ''}`);
+    }
+    if (wallet) {
+      console.log(`  Agent wallet: ${wallet}`);
+    }
+    if (meta.agentURI) {
+      console.log(`  Agent URI: ${formatUri(meta.agentURI)}`);
+    }
+    if (image) {
+      console.log(`  Image: ${image}`);
     }
     console.log('');
   }
