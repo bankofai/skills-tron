@@ -126,6 +126,16 @@ node scripts/query.js agent 1 --chain tron --network nile
 node scripts/query.js reputation 1 --chain bsc --network testnet
 ```
 
+### Search Agents (via search-service)
+
+```bash
+# Search on TN search-service
+node scripts/search.js --query "ainft" --url "https://tn-search-service.bankofai.io" --chain-id 3448148188
+
+# Filter only active x402 agents
+node scripts/search.js --query "payment" --active true --x402 true
+```
+
 ### Submit Feedback
 
 ```bash
