@@ -6,6 +6,7 @@
   "scripts": {
     "register": "node scripts/register.js",
     "query": "node scripts/query.js",
+    "search": "node scripts/search.js",
     "feedback": "node scripts/feedback.js",
     "set-uri": "node scripts/set-uri.js"
   },
