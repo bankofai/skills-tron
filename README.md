@@ -34,6 +34,7 @@ Currently available:
 - **8004-skill/** - 8004 Trustless Agents (TRC-8004 / BSC implementation)
 - **x402-payment/** - Enables agent payments on TRON network (x402 protocol)
 - **x402-payment-demo/** - Demo of x402 payment protocol
+- **ainft-skill/** - AINFT quota protection skill
 
 ### 2. Use a Skill
 
@@ -73,8 +74,11 @@ skills/
 ├── x402-payment/          # x402 Payment Protocol skill
 │   ├── SKILL.md           # Main instruction file
 │   └── dist/              # Compiled tool scripts
-└── x402-payment-demo/     # x402 Payment Demo skill
-    └── SKILL.md           # Main instruction file
+├── x402-payment-demo/     # x402 Payment Demo skill
+│   └── SKILL.md           # Main instruction file
+└── ainft-skill/           # AINFT quota protection skill
+    ├── SKILL.md           # Main instruction file
+    └── scripts/           # Quota guard script
 ```
 
 ---
@@ -85,6 +89,7 @@ skills/
 - **[8004 Trustless Agents](8004-skill/README.md)**: On-chain identity, reputation, and validation for AI agents (supports TRON & BSC)
 - **[x402-payment](x402-payment/SKILL.md)**: TRC20 Payments for AI Agents (USDT/USDD)
 - **[x402-payment-demo](x402-payment-demo/SKILL.md)**: Demo of x402 payment protocol (Protected Content Acquisition)
+- **[ainft-skill](ainft-skill/SKILL.md)**: AINFT quota protection with standardized quota checks
 
 ## How to Use Skills
 
